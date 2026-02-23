@@ -11,9 +11,7 @@ export default function AdminPanel() {
   const [data, setData] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   
-  // 篩選狀態
   const [filterType, setFilterType] = useState<'all' | 'quiz' | 'final'>('all');
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
 
@@ -34,7 +32,6 @@ export default function AdminPanel() {
     else if (tab === 'results') query = supabase.from(table).select('*, sjx_chapters(chapter_name)');
     else query = supabase.from(table).select('*');
     
-    // 統一排序
     const { data: list, error } = await query!.order('created_at', { ascending: false });
     
     if (error) {
@@ -50,16 +47,13 @@ export default function AdminPanel() {
 
   useEffect(() => { if (isAuth) fetchData(); }, [isAuth, tab]);
 
-  // 1. 匯出總表 (維持 jsPDF，適用於純英文/數字摘要)
   const exportSummaryPDF = () => {
     const doc = new jsPDF();
     doc.setTextColor(197, 160, 89);
     doc.setFontSize(18);
     doc.text("STARLUX ATC TRAINING - GRADE SUMMARY", 14, 20);
 
-    const filtered = data.filter(r => {
-      return filterType === 'all' ? true : r.exam_type === filterType;
-    });
+    const filtered = data.filter(r => filterType === 'all' ? true : r.exam_type === filterType);
 
     autoTable(doc, {
       startY: 30,
@@ -70,11 +64,8 @@ export default function AdminPanel() {
     doc.save(`Summary_${new Date().getTime()}.pdf`);
   };
 
-  // 2. 解決中文亂碼：使用 HTML 視窗列印診斷報告 (完美支援 Unicode)
   const exportDetailPDF = async (resultItem: any) => {
     const userAnswers = resultItem.detailed_answers || {};
-    
-    // 抓取該場考試相關的所有題目
     const { data: questions, error } = await supabase
       .from('sjx_questions')
       .select('*')
@@ -85,7 +76,6 @@ export default function AdminPanel() {
       return;
     }
 
-    // 建立一個專用的列印 HTML
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -108,10 +98,7 @@ export default function AdminPanel() {
             .status-ok { color: #28a745; font-weight: bold; }
             .status-fail { color: #dc3545; font-weight: bold; }
             .explanation { font-size: 12px; color: #666; font-style: italic; margin-top: 5px; background: #f9f9f9; padding: 8px; }
-            @media print {
-              .no-print { display: none; }
-              body { padding: 0; }
-            }
+            @media print { .no-print { display: none; } body { padding: 0; } }
           </style>
         </head>
         <body>
@@ -119,23 +106,15 @@ export default function AdminPanel() {
             <p class="title">STARLUX ATC Training REPORT</p>
             <p style="margin:5px 0 0 0; opacity:0.6;">ATC培訓考試報告</p>
           </div>
-          
           <div class="info-grid">
             <div class="info-item"><span class="info-label">CALLSIGN:</span> ${resultItem.callsign}</div>
             <div class="info-item"><span class="info-label">EXAM TYPE:</span> ${resultItem.exam_type.toUpperCase()}</div>
             <div class="info-item"><span class="info-label">SCORE:</span> <span style="font-size:18px; font-weight:bold;">${resultItem.score}</span></div>
             <div class="info-item"><span class="info-label">DATE:</span> ${new Date(resultItem.created_at).toLocaleString()}</div>
           </div>
-
           <table>
             <thead>
-              <tr>
-                <th width="50">#</th>
-                <th>QUESTION & EXPLANATION</th>
-                <th width="80">USER</th>
-                <th width="80">CORRECT</th>
-                <th width="60">RESULT</th>
-              </tr>
+              <tr><th width="50">#</th><th>QUESTION & EXPLANATION</th><th width="80">USER</th><th width="80">CORRECT</th><th width="60">RESULT</th></tr>
             </thead>
             <tbody>
               ${questions.map((q, index) => {
@@ -157,15 +136,12 @@ export default function AdminPanel() {
               }).join('')}
             </tbody>
           </table>
-
           <div class="no-print" style="margin-top: 30px; text-align: center;">
             <button onclick="window.print()" style="background:#c5a059; border:none; padding:10px 30px; font-weight:bold; cursor:pointer;">確認列印 / 另存 PDF</button>
-            <p style="font-size:12px; color:#888;">提示：請在列印視窗選擇「另存為 PDF」以獲取電子檔。</p>
           </div>
         </body>
       </html>
     `;
-
     printWindow.document.write(htmlContent);
     printWindow.document.close();
   };
@@ -182,7 +158,7 @@ export default function AdminPanel() {
   };
 
   const deleteItem = async (id: string) => {
-    if (!confirm('確定刪除？此動作不可撤銷。')) return;
+    if (!confirm('確定刪除？')) return;
     await fetch('/api/admin-db', { method: 'POST', body: JSON.stringify({ table: `sjx_${tab}`, action: 'DELETE', id }) });
     fetchData();
   };
@@ -215,7 +191,6 @@ export default function AdminPanel() {
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold uppercase border-l-4 border-sjx-gold pl-3">{tab} Management</h2>
-        
         {tab === 'results' && (
           <div className="flex gap-4 items-center">
             <select className="input-dark py-1 text-xs" value={filterType} onChange={e => setFilterType(e.target.value as any)}>
@@ -226,10 +201,7 @@ export default function AdminPanel() {
             <button onClick={exportSummaryPDF} className="btn-gold text-xs">Grade Summary</button>
           </div>
         )}
-        
-        {tab !== 'results' && (
-          <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="btn-gold">+ Add Entry</button>
-        )}
+        {tab !== 'results' && <button onClick={() => { setEditingItem(null); setIsModalOpen(true); }} className="btn-gold">+ Add Entry</button>}
       </div>
 
       <div className="card-sjx p-0 overflow-hidden border-gray-800">
@@ -243,17 +215,18 @@ export default function AdminPanel() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800">
-            {data
-              .filter(r => {
-                if (tab !== 'results') return true;
-                return filterType === 'all' ? true : r.exam_type === filterType;
-              })
-              .map(item => (
+            {data.filter(r => tab !== 'results' || (filterType === 'all' || r.exam_type === filterType)).map(item => (
               <tr key={item.id} className="hover:bg-white/5 transition-colors group">
                 <td className="p-4 font-mono text-sjx-gold">{item.callsign || item.chapter_name || item.student_name}</td>
                 <td className="p-4 text-gray-400">
                   {tab === 'questions' ? (
-                    <div className="max-w-md truncate">{(item.question_text || "").substring(0, 60)}...</div>
+                    <div className="flex flex-col gap-1">
+                      <div className="max-w-md truncate">{(item.question_text || "").substring(0, 60)}...</div>
+                      <div className="flex gap-2">
+                        {item.image_url && <span className="text-[9px] bg-blue-900/40 text-blue-300 px-1 rounded">IMAGE</span>}
+                        {item.audio_url && <span className="text-[9px] bg-purple-900/40 text-purple-300 px-1 rounded">AUDIO</span>}
+                      </div>
+                    </div>
                   ) : tab === 'results' ? (
                      <div className="flex items-center gap-3">
                        <span className={`px-2 py-0.5 rounded-sm font-bold text-[10px] ${item.passed ? "bg-green-900/40 text-green-400" : "bg-red-900/40 text-red-400"}`}>
@@ -266,12 +239,8 @@ export default function AdminPanel() {
                 </td>
                 <td className="p-4 text-[11px] text-gray-600 font-mono">{new Date(item.created_at).toLocaleString()}</td>
                 <td className="p-4 text-right space-x-3">
-                  {tab === 'results' && (
-                    <button onClick={() => exportDetailPDF(item)} className="text-sjx-gold hover:text-white transition-colors text-xs font-bold underline">Detail Report</button>
-                  )}
-                  {tab !== 'results' && (
-                    <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="text-gray-400 hover:text-sjx-gold">Edit</button>
-                  )}
+                  {tab === 'results' && <button onClick={() => exportDetailPDF(item)} className="text-sjx-gold hover:text-white transition-colors text-xs font-bold underline">Detail Report</button>}
+                  {tab !== 'results' && <button onClick={() => { setEditingItem(item); setIsModalOpen(true); }} className="text-gray-400 hover:text-sjx-gold">Edit</button>}
                   <button onClick={() => deleteItem(item.id)} className="text-gray-600 hover:text-red-500">Delete</button>
                 </td>
               </tr>
@@ -286,7 +255,6 @@ export default function AdminPanel() {
           <form onSubmit={handleSave} className="card-sjx w-full max-w-2xl border-sjx-gold/40">
             <h3 className="text-sjx-gold text-xl font-bold mb-6 uppercase border-b border-gray-800 pb-2 flex justify-between">
               <span>{editingItem ? 'Edit' : 'Create'} {tab.slice(0, -1)}</span>
-              <span className="text-[10px] text-gray-500 opacity-50">Operational Entry</span>
             </h3>
             <div className="grid grid-cols-2 gap-4">
               {tab === 'students' && (
@@ -313,13 +281,15 @@ export default function AdminPanel() {
                     <option value="final">Final</option>
                   </select>
                   <textarea name="question_text" placeholder="QUESTION CONTENT" className="input-dark col-span-2" defaultValue={editingItem?.question_text} required />
-                  <input name="option_a" placeholder="Option A (Alpha)" className="input-dark" defaultValue={editingItem?.option_a} required />
-                  <input name="option_b" placeholder="Option B (Bravo)" className="input-dark" defaultValue={editingItem?.option_b} required />
-                  <input name="option_c" placeholder="Option C (Charlie)" className="input-dark" defaultValue={editingItem?.option_c} />
-                  <input name="option_d" placeholder="Option D (Delta)" className="input-dark" defaultValue={editingItem?.option_d} />
+                  <input name="option_a" placeholder="Option A" className="input-dark" defaultValue={editingItem?.option_a} required />
+                  <input name="option_b" placeholder="Option B" className="input-dark" defaultValue={editingItem?.option_b} required />
+                  <input name="option_c" placeholder="Option C" className="input-dark" defaultValue={editingItem?.option_c} />
+                  <input name="option_d" placeholder="Option D" className="input-dark" defaultValue={editingItem?.option_d} />
                   <select name="correct_answer" className="input-dark" defaultValue={editingItem?.correct_answer || 'a'}>
                     <option value="a">A</option><option value="b">B</option><option value="c">C</option><option value="d">D</option>
                   </select>
+                  <input name="image_url" placeholder="IMAGE URL (Optional)" className="input-dark" defaultValue={editingItem?.image_url} />
+                  <input name="audio_url" placeholder="AUDIO URL (Optional)" className="input-dark" defaultValue={editingItem?.audio_url} />
                   <input name="explanation" placeholder="EXPLANATION / KEY POINT" className="input-dark col-span-2" defaultValue={editingItem?.explanation} />
                 </>
               )}
