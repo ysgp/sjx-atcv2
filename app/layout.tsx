@@ -4,8 +4,8 @@ import { Home, BookOpen, Trophy, ClipboardList, Settings } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'STARLUX ATC Training',
-  description: 'Virtual STARLUX ATC Training System',
+  title: 'Virtual Starlux ATC Training',
+  description: 'Virtual Starlux ATC Training System',
 };
 
 const navItems = [
@@ -40,7 +40,7 @@ export default function RootLayout({
         <aside className="w-64 bg-primary-dark border-r border-cream/10 flex flex-col fixed h-full z-40">
           {/* Logo */}
           <div className="p-6 border-b border-cream/10">
-            <h1 className="text-2xl font-bold text-accent tracking-wide">STARLUX</h1>
+            <h1 className="text-2xl font-bold text-accent tracking-wide">Virtual Starlux</h1>
             <p className="text-xs text-cream/50 mt-1 uppercase tracking-widest">ATC Training System</p>
           </div>
           
@@ -60,7 +60,7 @@ export default function RootLayout({
 
           {/* Footer */}
           <div className="p-4 border-t border-cream/10">
-            <p className="text-xs text-cream/30 text-center">v2.0 © STARLUX Airlines</p>
+            <p className="text-xs text-cream/30 text-center">v2.0 © Virtual Starlux</p>
           </div>
         </aside>
 
@@ -73,7 +73,7 @@ export default function RootLayout({
             </div>
             <div className="flex items-center gap-4">
               <div className="w-8 h-8 rounded-full bg-accent flex items-center justify-center text-cream text-sm font-bold">
-                SJX
+                VS
               </div>
             </div>
           </header>
