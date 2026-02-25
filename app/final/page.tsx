@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
+import { User, Clock, CheckCircle, XCircle, AlertTriangle, Home } from 'lucide-react';
 
 export default function FinalExamPage() {
   const [step, setStep] = useState(1); // 1: Callsign, 2: Exam, 3: Result
@@ -105,64 +106,108 @@ export default function FinalExamPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-cream mb-2">結訓考試</h1>
+        <p className="text-cream/50">綜合評估，獲取認證資格</p>
+      </div>
+
       {step === 1 && (
-        <div className="card text-center">
-          <h2 className="text-2xl mb-4 text-sjx-gold">結訓考試驗證 (Final Exam)</h2>
-          <p className="text-gray-400 mb-6">通過標準：80分 | 題目：20題隨機 | 時間：60分鐘</p>
+        <div className="card max-w-md mx-auto text-center">
+          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-6">
+            <User className="w-8 h-8 text-accent" />
+          </div>
+          <h2 className="text-xl font-bold text-cream mb-2">結訓考試驗證</h2>
+          <div className="flex items-center justify-center gap-4 text-cream/50 text-sm mb-6">
+            <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4" /> 80分及格</span>
+            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> 60分鐘</span>
+            <span>20題</span>
+          </div>
           <input 
-            className="input-dark w-full mb-4 text-center text-xl" 
-            placeholder="INPUT CALLSIGN"
+            className="input-field w-full mb-6 text-center text-xl font-mono tracking-wider" 
+            placeholder="CALLSIGN"
             value={callsign} 
             onChange={e => setCallsign(e.target.value.toUpperCase())} 
           />
-          <button className="btn-gold w-full" onClick={startExam}>開始考試</button>
+          <button className="btn-primary w-full" onClick={startExam}>開始考試</button>
         </div>
       )}
 
       {step === 2 && (
         <div>
-          <div className="sticky top-4 z-10 bg-sjx-gold text-black font-bold p-4 rounded-full flex justify-between items-center mb-8 shadow-2xl">
-            <span>CALLSIGN: {callsign}</span>
-            <span className="text-2xl">剩餘時間: {formatTime(timeLeft)}</span>
+          <div className="sticky top-20 z-10 bg-accent text-cream font-bold p-4 rounded-xl flex justify-between items-center mb-8 shadow-xl">
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {callsign}
+            </span>
+            <span className={`text-xl flex items-center gap-2 ${timeLeft < 300 ? 'text-red-200 animate-pulse' : ''}`}>
+              <Clock className="w-5 h-5" />
+              {formatTime(timeLeft)}
+            </span>
           </div>
 
-          {questions.map((q, idx) => (
-            <div key={q.id} className="card mb-6">
-              <p className="mb-4 text-lg font-semibold">{idx + 1}. {q.question_text}</p>
-              {q.image_url && <img src={q.image_url} alt="Exam" className="mb-4 rounded max-h-64" />}
-              <div className="grid grid-cols-1 gap-3">
-                {['a', 'b', 'c', 'd'].map(opt => (
-                  q[`option_${opt}`] && (
-                    <button 
-                      key={opt}
-                      onClick={() => setAnswers({...answers, [q.id]: opt})}
-                      className={`p-4 text-left rounded border transition-colors ${answers[q.id] === opt ? 'border-sjx-gold bg-sjx-gold/20' : 'border-gray-600 hover:border-sjx-gold/50'}`}
-                    >
-                      <span className="font-bold mr-2">{opt.toUpperCase()}.</span> {q[`option_${opt}`]}
-                    </button>
-                  )
-                ))}
+          <div className="space-y-6">
+            {questions.map((q, idx) => (
+              <div key={q.id} className="card">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="bg-accent text-cream text-xs font-bold px-3 py-1 rounded-lg">Q{idx + 1}</span>
+                </div>
+                <p className="mb-6 text-lg text-cream">{q.question_text}</p>
+                {q.image_url && <img src={q.image_url} alt="Exam" className="mb-4 rounded-lg max-h-64 border border-cream/10" />}
+                <div className="grid grid-cols-1 gap-3">
+                  {['a', 'b', 'c', 'd'].map(opt => (
+                    q[`option_${opt}`] && (
+                      <button 
+                        key={opt}
+                        onClick={() => setAnswers({...answers, [q.id]: opt})}
+                        className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
+                          answers[q.id] === opt 
+                          ? 'border-accent bg-accent/20 text-cream font-bold' 
+                          : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
+                        }`}
+                      >
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${
+                          answers[q.id] === opt ? 'bg-accent text-cream border-accent' : 'border-cream/30'
+                        }`}>
+                          {opt.toUpperCase()}
+                        </span>
+                        {q[`option_${opt}`]}
+                      </button>
+                    )
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-          <button className="btn-gold w-full py-4 text-xl mt-4 mb-20" onClick={() => { if(confirm('確定要提交試卷嗎？')) submitExam(); }}>提交結訓試卷</button>
+            ))}
+          </div>
+          <button className="btn-primary w-full py-4 text-lg mt-8 mb-20" onClick={() => { if(confirm('確定要提交試卷嗎？')) submitExam(); }}>提交結訓試卷</button>
         </div>
       )}
 
       {step === 3 && (
         <div className="card text-center py-12">
-          <h2 className={`text-6xl font-bold mb-6 ${examResult.passed ? 'text-green-500' : 'text-red-500'}`}>
+          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+            {examResult.passed ? (
+              <CheckCircle className="w-12 h-12 text-green-400" />
+            ) : (
+              <XCircle className="w-12 h-12 text-red-400" />
+            )}
+          </div>
+          <h2 className={`text-5xl font-bold mb-4 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
             {examResult.passed ? 'PASSED' : 'FAILED'}
           </h2>
-          <p className="text-3xl mb-4">得分: {examResult.score}</p>
-          <p className="text-gray-400 mb-10">
-            {examResult.passed ? '恭喜您完成 STARLUX ATC 培訓。' : '未達 80 分標準，請檢討後再次嘗試補考。'}
+          <p className="text-4xl font-mono text-cream mb-2">{examResult.score} 分</p>
+          <p className="text-cream/50 mb-8">
+            {examResult.passed ? '恭喜您完成 STARLUX ATC 培訓認證。' : '未達 80 分標準，請檢討後再次嘗試補考。'}
           </p>
-          <div className="bg-yellow-900/20 border border-yellow-700/50 p-4 rounded mb-8 text-sm text-yellow-500">
-            結訓考試不開放顯示正確答案與解析。
+          <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg mb-8 flex items-center justify-center gap-3 text-amber-300">
+            <AlertTriangle className="w-5 h-5" />
+            <span className="text-sm">結訓考試不開放顯示正確答案與解析</span>
           </div>
-          <button className="btn-gold px-12" onClick={() => window.location.href = '/'}>回到首頁</button>
+          <button className="btn-primary flex items-center gap-2 mx-auto" onClick={() => window.location.href = '/'}>
+            <Home className="w-4 h-4" />
+            回到首頁
+          </button>
         </div>
       )}
     </div>

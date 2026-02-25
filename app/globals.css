@@ -1,24 +1,38 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2F3944;
+  --color-primary-light: #3d4a57;
+  --color-primary-dark: #232c35;
+  --color-accent: #996A4E;
+  --color-accent-hover: #7d5740;
+  --color-cream: #FCF9EA;
+  --color-cream-dark: #f5f0dc;
+}
 
 @layer base {
   body {
-    @apply bg-sjx-dark text-gray-100 font-sans antialiased;
+    @apply bg-primary text-cream font-sans antialiased;
   }
 }
 
 @layer components {
-  .btn-gold {
-    @apply bg-sjx-gold text-black font-bold py-2 px-6 rounded-sm transition-all hover:bg-sjx-gold_hover active:scale-95 disabled:opacity-50 uppercase tracking-widest text-sm;
+  .btn-primary {
+    @apply bg-accent text-cream font-bold py-2.5 px-6 rounded-lg transition-all hover:bg-accent-hover active:scale-95 disabled:opacity-50 uppercase tracking-wider text-sm shadow-lg;
   }
-  .input-dark {
-    @apply bg-sjx-gray border border-gray-700 rounded-sm p-3 text-white focus:outline-none focus:border-sjx-gold transition-colors placeholder:text-gray-500;
+  .btn-secondary {
+    @apply bg-primary-light text-cream font-semibold py-2 px-5 rounded-lg border border-cream/20 transition-all hover:bg-primary-dark hover:border-cream/40 active:scale-95 disabled:opacity-50;
   }
-  .card-sjx {
-    @apply bg-sjx-gray border border-gray-800 p-6 rounded-sm shadow-2xl;
+  .input-field {
+    @apply bg-primary-dark border border-cream/20 rounded-lg p-3 text-cream focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all placeholder:text-cream/40;
   }
-  .table-header {
-    @apply bg-black/40 text-sjx-gold text-xs uppercase tracking-tighter p-3;
+  .card {
+    @apply bg-primary-light border border-cream/10 p-6 rounded-xl shadow-xl;
+  }
+  .sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg text-cream/70 transition-all hover:bg-primary-light hover:text-cream;
+  }
+  .sidebar-link-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-lg bg-accent text-cream font-semibold;
   }
 }

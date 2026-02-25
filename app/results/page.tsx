@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Search, X, CheckCircle, XCircle, FileText, Calendar } from 'lucide-react';
 
 export default function ResultsPage() {
   const [callsign, setCallsign] = useState('');
@@ -39,45 +40,74 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-8">
-      <h1 className="text-3xl font-bold text-sjx-gold mb-8">學員成績查詢</h1>
+    <div className="max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-cream mb-2">成績查詢</h1>
+        <p className="text-cream/50">查看您的學習進度與歷史紀錄</p>
+      </div>
       
-      <div className="flex gap-4 mb-12">
-        <input 
-          className="input-dark flex-1 text-xl" 
-          placeholder="ENTER CALLSIGN"
-          value={callsign}
-          onChange={e => setCallsign(e.target.value)}
-        />
-        <button className="btn-gold" onClick={fetchResults} disabled={loading}>
-          {loading ? '查詢中...' : '搜尋'}
-        </button>
+      {/* Search Box */}
+      <div className="card mb-8">
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="w-5 h-5 text-cream/40 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input 
+              className="input-field w-full pl-10 text-lg" 
+              placeholder="輸入您的 CALLSIGN"
+              value={callsign}
+              onChange={e => setCallsign(e.target.value.toUpperCase())}
+              onKeyDown={e => e.key === 'Enter' && fetchResults()}
+            />
+          </div>
+          <button className="btn-primary" onClick={fetchResults} disabled={loading}>
+            {loading ? '查詢中...' : '搜尋'}
+          </button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        {results.length === 0 && !loading && <p className="text-gray-500 text-center py-10">請輸入呼號進行查詢</p>}
+      {/* Results List */}
+      <div className="space-y-4">
+        {results.length === 0 && !loading && (
+          <div className="card text-center py-16">
+            <FileText className="w-12 h-12 text-cream/20 mx-auto mb-4" />
+            <p className="text-cream/50">請輸入呼號進行查詢</p>
+          </div>
+        )}
         
         {results.map((res) => (
-          <div key={res.id} className="card flex justify-between items-center border-l-4 border-l-sjx-gold">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <span className={`text-xs px-2 py-0.5 rounded ${res.exam_type === 'quiz' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200'}`}>
-                  {res.exam_type.toUpperCase()}
-                </span>
-                <span className="font-bold text-lg">
-                  {res.exam_type === 'quiz' ? res.sjx_chapters?.chapter_name : '結訓考試 Final'}
-                </span>
+          <div key={res.id} className="card flex justify-between items-center border-l-4 border-l-accent">
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${res.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                {res.passed ? (
+                  <CheckCircle className="w-5 h-5 text-green-400" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-400" />
+                )}
               </div>
-              <p className="text-gray-400 text-sm">{new Date(res.created_at).toLocaleString()}</p>
+              <div>
+                <div className="flex items-center gap-3 mb-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold ${res.exam_type === 'quiz' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                    {res.exam_type.toUpperCase()}
+                  </span>
+                  <span className="font-bold text-lg text-cream">
+                    {res.exam_type === 'quiz' ? res.sjx_chapters?.chapter_name : '結訓考試'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-cream/50 text-sm">
+                  <Calendar className="w-4 h-4" />
+                  {new Date(res.created_at).toLocaleString()}
+                </div>
+              </div>
             </div>
             
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-6">
               <div className="text-right">
-                <p className={`text-2xl font-bold ${res.passed ? 'text-green-500' : 'text-red-500'}`}>{res.score}</p>
-                <p className="text-xs uppercase opacity-50">{res.passed ? 'Passed' : 'Failed'}</p>
+                <p className={`text-2xl font-bold ${res.passed ? 'text-green-400' : 'text-red-400'}`}>{res.score}</p>
+                <p className="text-xs uppercase text-cream/40">{res.passed ? 'Passed' : 'Failed'}</p>
               </div>
               {res.exam_type === 'quiz' && (
-                <button className="text-sjx-gold hover:underline text-sm" onClick={() => showDetails(res)}>詳情</button>
+                <button className="btn-secondary text-sm" onClick={() => showDetails(res)}>詳情</button>
               )}
             </div>
           </div>
@@ -86,27 +116,35 @@ export default function ResultsPage() {
 
       {/* 小考詳情彈窗 */}
       {selectedQuiz && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#2d2d2d] w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-lg p-6 border border-sjx-gold">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl text-sjx-gold font-bold">答題紀錄: {selectedQuiz.sjx_chapters ?.chapter_name}</h3>
-              <button onClick={() => setSelectedQuiz(null)} className="text-white text-2xl">&times;</button>
+        <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-primary-light w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl border border-cream/20 shadow-2xl">
+            <div className="sticky top-0 bg-primary-light border-b border-cream/10 p-6 flex justify-between items-center">
+              <h3 className="text-xl text-accent font-bold">答題紀錄: {selectedQuiz.sjx_chapters?.chapter_name}</h3>
+              <button onClick={() => setSelectedQuiz(null)} className="w-8 h-8 rounded-full bg-cream/10 flex items-center justify-center hover:bg-cream/20 transition-colors">
+                <X className="w-5 h-5 text-cream" />
+              </button>
             </div>
             
-            <div className="space-y-6">
+            <div className="p-6 space-y-4">
               {selectedQuiz.questions?.map((q: any, idx: number) => {
                 const userAns = selectedQuiz.detailed_answers[q.id];
                 const isCorrect = userAns === q.correct_answer;
                 return (
-                  <div key={q.id} className="border-b border-gray-700 pb-4">
-                    <p className="mb-2">{idx + 1}. {q.question_text}</p>
-                    <div className="text-sm">
-                      <p className={isCorrect ? 'text-green-500' : 'text-red-500'}>
-                        你的答案: {userAns?.toUpperCase() || '未答'} 
-                        {isCorrect ? ' (正確)' : ` (錯誤，正確為 ${q.correct_answer.toUpperCase()})`}
-                      </p>
-                      <p className="text-gray-400 mt-2 bg-black/30 p-2 rounded">解析: {q.explanation}</p>
+                  <div key={q.id} className={`p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
+                    <p className="text-cream mb-3">{idx + 1}. {q.question_text}</p>
+                    <div className="text-sm flex items-center gap-4">
+                      <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>
+                        你的答案: {userAns?.toUpperCase() || '未答'}
+                      </span>
+                      {!isCorrect && (
+                        <span className="text-accent font-semibold">
+                          正確答案: {q.correct_answer.toUpperCase()}
+                        </span>
+                      )}
                     </div>
+                    {q.explanation && (
+                      <p className="text-cream/50 mt-3 text-sm bg-primary-dark p-3 rounded-lg">解析: {q.explanation}</p>
+                    )}
                   </div>
                 );
               })}

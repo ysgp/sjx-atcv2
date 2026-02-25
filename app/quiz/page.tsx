@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { User, BookOpen, CheckCircle, XCircle, ArrowRight, Home } from 'lucide-react';
 
 export default function QuizPage() {
   const [step, setStep] = useState(1); // 1: Callsign, 2: Chapter, 3: Exam, 4: Result
@@ -114,83 +115,95 @@ export default function QuizPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 min-h-screen">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl font-bold text-sjx-gold tracking-widest uppercase">ATC Quiz System</h1>
-        <p className="text-gray-500 text-sm mt-2">星宇航空培訓小考系統</p>
+    <div className="max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-cream mb-2">小考系統</h1>
+        <p className="text-cream/50">章節制測驗，提升您的專業技能</p>
       </div>
 
       {/* Step 1: 身份驗證 */}
       {step === 1 && (
-        <div className="card-sjx text-center max-w-md mx-auto">
-          <h2 className="text-xl mb-6 text-sjx-gold font-bold underline">身分驗證 / IDENTIFY</h2>
-          <p className="text-gray-400 text-xs mb-4">請輸入您的呼號 (如: SJX123)</p>
+        <div className="card max-w-md mx-auto text-center">
+          <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-6">
+            <User className="w-8 h-8 text-accent" />
+          </div>
+          <h2 className="text-xl font-bold text-cream mb-2">身分驗證</h2>
+          <p className="text-cream/50 text-sm mb-6">請輸入您的呼號 (如: SJX123)</p>
           <input 
-            className="input-dark w-full mb-6 text-center text-2xl font-mono tracking-tighter" 
+            className="input-field w-full mb-6 text-center text-xl font-mono tracking-wider" 
             placeholder="CALLSIGN"
             value={callsign} 
             onChange={e => setCallsign(e.target.value.toUpperCase())} 
           />
           <button 
-            className="btn-gold w-full py-3" 
+            className="btn-primary w-full" 
             onClick={verifyCallsign}
             disabled={loading || !callsign}
           >
-            {loading ? '驗證中...' : '進入系統 / ACCESS'}
+            {loading ? '驗證中...' : '進入系統'}
           </button>
         </div>
       )}
 
       {/* Step 2: 選擇章節 */}
       {step === 2 && (
-        <div className="grid grid-cols-1 gap-6">
-          <h2 className="text-2xl mb-2 text-sjx-gold font-bold">選擇測驗章節 / CHAPTER</h2>
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <BookOpen className="w-6 h-6 text-accent" />
+            <h2 className="text-xl font-bold text-cream">選擇測驗章節</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {chapters.map(c => (
               <button 
                 key={c.id} 
                 onClick={() => startQuiz(c.id)} 
                 disabled={loading}
-                className="card-sjx text-left hover:border-sjx-gold transition-all group flex justify-between items-center"
+                className="card text-left hover:border-accent transition-all group flex justify-between items-center"
               >
                 <div>
-                  <div className="text-sjx-gold font-bold">{c.chapter_name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{c.description || '無章節描述'}</div>
+                  <div className="text-accent font-bold text-lg">{c.chapter_name}</div>
+                  <div className="text-sm text-cream/50 mt-1">{c.description || '無章節描述'}</div>
                 </div>
-                <span className="text-sjx-gold opacity-0 group-hover:opacity-100 transition-opacity">START →</span>
+                <ArrowRight className="w-5 h-5 text-accent opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Step 3: 測驗進行中（含多媒體支援） */}
+      {/* Step 3: 測驗進行中 */}
       {step === 3 && (
-        <div className="space-y-8">
-          <div className="sticky top-4 z-10 bg-sjx-gold text-black px-6 py-2 rounded-full font-bold shadow-2xl flex justify-between">
-            <span>CALLSIGN: {callsign}</span>
-            <span>CHAPTER QUIZ</span>
+        <div className="space-y-6">
+          <div className="sticky top-20 z-10 bg-accent text-cream px-6 py-3 rounded-xl font-bold shadow-xl flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              {callsign}
+            </span>
+            <span className="text-sm bg-cream/20 px-3 py-1 rounded-lg">章節測驗</span>
           </div>
 
           {questions.map((q, idx) => (
-            <div key={q.id} className="card-sjx">
-              <div className="flex justify-between items-start mb-4">
-                <span className="bg-sjx-gold text-black text-[10px] font-bold px-2 py-1 rounded">QUESTION {idx + 1}</span>
+            <div key={q.id} className="card">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="bg-accent text-cream text-xs font-bold px-3 py-1 rounded-lg">
+                  Q{idx + 1}
+                </span>
               </div>
               
-              <p className="mb-6 text-lg leading-relaxed">{q.question_text}</p>
+              <p className="mb-6 text-lg leading-relaxed text-cream">{q.question_text}</p>
 
               {/* 多媒體區塊：圖片 */}
               {q.image_url && (
-                <div className="mb-6 border border-gray-700 p-2 bg-black/20 rounded">
+                <div className="mb-6 border border-cream/10 p-2 bg-primary-dark rounded-lg">
                   <img src={q.image_url} alt="Exam Chart" className="max-w-full h-auto rounded mx-auto" />
                 </div>
               )}
 
               {/* 多媒體區塊：音訊播放器 */}
               {q.audio_url && (
-                <div className="mb-6 bg-sjx-dark border border-sjx-gold/30 p-4 rounded flex items-center gap-4">
-                  <span className="text-xs font-bold text-sjx-gold uppercase">Listen ATC Audio:</span>
+                <div className="mb-6 bg-primary-dark border border-accent/30 p-4 rounded-lg flex items-center gap-4">
+                  <span className="text-xs font-bold text-accent uppercase">播放音訊:</span>
                   <audio controls src={q.audio_url} className="h-10 flex-1">
                     Your browser does not support the audio element.
                   </audio>
@@ -204,14 +217,14 @@ export default function QuizPage() {
                     <button 
                       key={opt}
                       onClick={() => setAnswers({...answers, [q.id]: opt})}
-                      className={`p-4 text-left rounded-sm border transition-all flex items-center gap-4 ${
+                      className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
                         answers[q.id] === opt 
-                        ? 'border-sjx-gold bg-sjx-gold/10 text-white font-bold' 
-                        : 'border-gray-800 bg-sjx-gray/50 text-gray-400 hover:border-gray-600'
+                        ? 'border-accent bg-accent/20 text-cream font-bold' 
+                        : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
                       }`}
                     >
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] border ${
-                        answers[q.id] === opt ? 'bg-sjx-gold text-black border-sjx-gold' : 'border-gray-600'
+                      <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${
+                        answers[q.id] === opt ? 'bg-accent text-cream border-accent' : 'border-cream/30'
                       }`}>
                         {opt.toUpperCase()}
                       </span>
@@ -224,46 +237,66 @@ export default function QuizPage() {
           ))}
 
           <button 
-            className="btn-gold w-full py-4 text-lg mb-20 shadow-xl" 
+            className="btn-primary w-full py-4 text-lg mb-20" 
             onClick={() => { if(confirm('確定要提交答案嗎？')) submitQuiz(); }}
           >
-            提交試卷 / SUBMIT REPORT
+            提交試卷
           </button>
         </div>
       )}
 
       {/* Step 4: 測驗結果與詳解 */}
       {step === 4 && (
-        <div className="card-sjx text-center">
-          <h2 className={`text-5xl font-black mb-4 tracking-tighter ${examResult.passed ? 'text-green-500' : 'text-red-500'}`}>
-            {examResult.passed ? 'PASSED' : 'FAILED'}
-          </h2>
-          <p className="text-2xl mb-8 font-mono">FINAL SCORE: {examResult.score}</p>
-          
-          <div className="text-left space-y-6 mt-10 border-t border-gray-800 pt-8">
-            <h3 className="text-sjx-gold font-bold uppercase tracking-widest mb-4">Diagnostic Review / 診斷詳解</h3>
-            {questions.map((q, idx) => {
-              const isCorrect = (answers[q.id] || "").toLowerCase() === (q.correct_answer || "").toLowerCase();
-              return (
-                <div key={q.id} className={`p-4 rounded border ${isCorrect ? 'border-green-900/30 bg-green-900/10' : 'border-red-900/30 bg-red-900/10'}`}>
-                  <p className="font-bold text-gray-200">{idx + 1}. {q.question_text}</p>
-                  <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                    <p className={isCorrect ? 'text-green-400' : 'text-red-400'}>
-                      您的答案: {(answers[q.id] || "未答").toUpperCase()}
-                    </p>
-                    <p className="text-sjx-gold font-bold">正確答案: {q.correct_answer.toUpperCase()}</p>
-                  </div>
-                  {q.explanation && (
-                    <div className="mt-3 text-xs text-gray-400 bg-black/40 p-3 rounded italic">
-                      解析: {q.explanation}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+        <div className="card">
+          <div className="text-center mb-8">
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+              {examResult.passed ? (
+                <CheckCircle className="w-10 h-10 text-green-400" />
+              ) : (
+                <XCircle className="w-10 h-10 text-red-400" />
+              )}
+            </div>
+            <h2 className={`text-4xl font-bold mb-2 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
+              {examResult.passed ? 'PASSED' : 'FAILED'}
+            </h2>
+            <p className="text-3xl font-mono text-cream">{examResult.score} 分</p>
           </div>
           
-          <button className="btn-gold mt-12 px-12" onClick={() => window.location.href = '/'}>回首頁 / BACK HOME</button>
+          <div className="border-t border-cream/10 pt-8">
+            <h3 className="text-accent font-bold uppercase tracking-wider mb-6 flex items-center gap-2">
+              <BookOpen className="w-5 h-5" />
+              答題詳解
+            </h3>
+            <div className="space-y-4">
+              {questions.map((q, idx) => {
+                const isCorrect = (answers[q.id] || "").toLowerCase() === (q.correct_answer || "").toLowerCase();
+                return (
+                  <div key={q.id} className={`p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
+                    <p className="font-bold text-cream mb-3">{idx + 1}. {q.question_text}</p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <p className={isCorrect ? 'text-green-400' : 'text-red-400'}>
+                        您的答案: {(answers[q.id] || "未答").toUpperCase()}
+                      </p>
+                      <p className="text-accent font-bold">正確答案: {q.correct_answer.toUpperCase()}</p>
+                    </div>
+                    {q.explanation && (
+                      <div className="mt-3 text-sm text-cream/60 bg-primary-dark p-3 rounded-lg">
+                        解析: {q.explanation}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          
+          <button 
+            className="btn-primary mt-8 w-full flex items-center justify-center gap-2" 
+            onClick={() => window.location.href = '/'}
+          >
+            <Home className="w-4 h-4" />
+            回首頁
+          </button>
         </div>
       )}
     </div>
