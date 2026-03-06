@@ -15,9 +15,11 @@ export default function FinalExamPage() {
   // 自定義對話框狀態
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogConfig, setDialogConfig] = useState<{
+    type: 'alert' | 'confirm';
     title: string;
     message: string;
-  }>({ title: '', message: '' });
+    onConfirm?: () => void;
+  }>({ type: 'alert', title: '', message: '' });
 
   // 驗證呼號與資格
   const startExam = async () => {
@@ -25,6 +27,7 @@ export default function FinalExamPage() {
     const { data: student } = await supabase.from('sjx_students').select('*').eq('callsign', callsign).single();
     if (!student) {
       setDialogConfig({
+        type: 'alert',
         title: '查詢失敗',
         message: '找不到該呼號 (Callsign)，請聯繫教官建立資料'
       });
@@ -43,6 +46,7 @@ export default function FinalExamPage() {
 
     if (pastPass && pastPass.length > 0) {
       setDialogConfig({
+        type: 'alert',
         title: '已通過考試',
         message: '您已通過結訓考試，無需重複考試。'
       });
@@ -58,6 +62,7 @@ export default function FinalExamPage() {
     
     if (!ques || ques.length < 20) {
       setDialogConfig({
+        type: 'alert',
         title: '題庫不足',
         message: '題庫數量不足 (需至少 20 題)，請聯絡教官。'
       });
@@ -119,14 +124,14 @@ const submitExam = async () => {
         break;
 
       case 'fill_blank':
-        const possibleAnswers = correctAns.split(',').map(a => a.trim().toLowerCase());
+        const possibleAnswers = correctAns.split(',').map((a: string) => a.trim().toLowerCase());
         isCorrect = possibleAnswers.includes(userAns.toLowerCase());
         break;
 
       case 'short_answer':
-        const keywords = correctAns.split(',').map(k => k.trim().toLowerCase());
+        const keywords = correctAns.split(',').map((k: string) => k.trim().toLowerCase());
         const userAnswerLower = userAns.toLowerCase();
-        isCorrect = keywords.some(keyword => userAnswerLower.includes(keyword));
+        isCorrect = keywords.some((keyword: string) => userAnswerLower.includes(keyword));
         break;
 
       default:
