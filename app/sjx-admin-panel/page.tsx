@@ -581,17 +581,18 @@ export default function AdminPanel() {
 
       {/* Data Table */}
       <div className="card p-0 overflow-hidden">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-primary-dark text-accent text-xs uppercase tracking-wider font-bold">
-            <tr>
-              <th className="p-4">主要識別</th>
-              <th className="p-4">資訊 / 狀態</th>
-              <th className="p-4">時間</th>
-              <th className="p-4 text-right">操作</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-cream/5">
-            {data.filter(r => tab !== 'results' || (filterType === 'all' || r.exam_type === filterType)).map(item => (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-primary-dark text-accent text-xs uppercase tracking-wider font-bold">
+              <tr>
+                <th className="p-4">主要識別</th>
+                <th className="p-4">資訊 / 狀態</th>
+                <th className="p-4">時間</th>
+                <th className="p-4 text-right">操作</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cream/5">
+              {data.filter(r => tab !== 'results' || (filterType === 'all' || r.exam_type === filterType)).map(item => (
               <tr key={item.id} className="hover:bg-primary-dark/50 transition-colors group">
                 <td className="p-4 font-mono text-accent">{item.callsign || item.chapter_name || item.student_name}</td>
                 <td className="p-4 text-cream/60">
@@ -652,14 +653,16 @@ export default function AdminPanel() {
             ))}
           </tbody>
         </table>
+        </div>
         {data.length === 0 && <div className="p-20 text-center text-cream/30">目前沒有資料</div>}
       </div>
 
       {/* Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <form onSubmit={handleSave} className="card w-full max-w-2xl border border-cream/20">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-cream/10">
+        <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+          <form onSubmit={handleSave} className="card w-full max-w-full sm:max-w-md md:max-w-2xl border border-cream/20 max-h-[90vh] flex flex-col">
+            {/* Header - Fixed */}
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-cream/10 flex-shrink-0">
               <h3 className="text-xl font-bold text-accent">
                 {editingItem ? '編輯' : '新增'}{tabConfig[tab].label.replace('管理', '')}
               </h3>
@@ -667,7 +670,10 @@ export default function AdminPanel() {
                 <X className="w-5 h-5 text-cream" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            {/* Top Section - Fixed (for students/chapters, all content; for questions, only top fields) */}
+            {tab !== 'questions' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tab === 'students' && (
                 <>
                   <input name="callsign" placeholder="CALLSIGN" className="input-field" defaultValue={editingItem?.callsign} required />
@@ -682,8 +688,11 @@ export default function AdminPanel() {
                   <textarea name="description" placeholder="章節描述" className="input-field col-span-2 h-32" defaultValue={editingItem?.description} />
                 </>
               )}
-              {tab === 'questions' && (
-                <>
+              </div>
+            ) : (
+              <>
+                {/* Questions - Fixed Top Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-shrink-0">
                   <CustomSelect
                     name="chapter_id"
                     options={chapters.map(c => ({ value: c.id, label: c.chapter_name }))}
@@ -700,10 +709,10 @@ export default function AdminPanel() {
                     value={selectedExamType}
                     onChange={setSelectedExamType}
                   />
-                  <textarea name="question_text" placeholder="題目內容" className="input-field col-span-2" defaultValue={editingItem?.question_text} required />
+                  <textarea name="question_text" placeholder="題目內容" className="input-field col-span-2 resize-none" rows={5} defaultValue={editingItem?.question_text} required />
                   
                   {/* 題型選擇 Tabs */}
-                  <div className="col-span-2 border-b border-cream/10 mb-2">
+                  <div className="col-span-2 border-b border-cream/10 mb-0">
                     <div className="flex gap-2 -mb-px">
                       {[
                         { type: 'single_choice', label: '單選題', icon: '◉' },
@@ -729,6 +738,11 @@ export default function AdminPanel() {
                     </div>
                   </div>
                   <input type="hidden" name="question_type" value={questionType} />
+                </div>
+
+                {/* Questions - Scrollable Middle Section */}
+                <div className="overflow-y-auto flex-1 pr-2 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                   {/* 正確答案設定 Toggle */}
                   <div className="col-span-2 bg-primary-dark border border-cream/10 rounded-lg p-4">
@@ -886,8 +900,8 @@ export default function AdminPanel() {
                       {hasCorrectAnswer && (
                         <div className="col-span-2">
                           <input type="hidden" name="correct_answer" value={multipleChoiceAnswers.sort().join('')} />
-                          <p className="text-sm font-semibold text-cream mb-3">選擇正確答案：</p>
-                          <div className="grid grid-cols-2 gap-3">
+                          <p className="text-sm font-semibold text-cream mb-2">選擇正確答案：</p>
+                          <div className="grid grid-cols-2 gap-2">
                             {['a', 'b', 'c', 'd'].map(opt => {
                               const isSelected = multipleChoiceAnswers.includes(opt);
                               const optionText = optionTexts[opt as keyof typeof optionTexts];
@@ -902,29 +916,29 @@ export default function AdminPanel() {
                                       setMultipleChoiceAnswers([...multipleChoiceAnswers, opt]);
                                     }
                                   }}
-                                  className={`p-4 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                                  className={`p-3 rounded-lg border-2 transition-all flex items-center gap-3 min-h-[60px] ${
                                     isSelected
                                       ? 'border-accent bg-accent/20'
                                       : 'border-cream/20 hover:border-cream/40'
                                   }`}
                                 >
-                                  <div className={`w-8 h-8 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                                  <div className={`w-7 h-7 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
                                     isSelected ? 'bg-accent border-accent' : 'border-cream/40'
                                   }`}>
                                     {isSelected && (
-                                      <svg className="w-5 h-5 text-cream" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                      <svg className="w-4 h-4 text-cream" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
                                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                       </svg>
                                     )}
                                   </div>
                                   <div className="flex flex-col items-start gap-1 flex-1 min-w-0">
-                                    <span className={`text-lg font-bold ${
+                                    <span className={`text-base font-bold ${
                                       isSelected ? 'text-accent' : 'text-cream/60'
                                     }`}>
                                       {opt.toUpperCase()}
                                     </span>
                                     {optionText && (
-                                      <span className={`text-sm text-left line-clamp-2 ${
+                                      <span className={`text-xs text-left line-clamp-1 ${
                                         isSelected ? 'text-cream/80' : 'text-cream/40'
                                       }`}>
                                         {optionText}
@@ -972,7 +986,7 @@ export default function AdminPanel() {
                       <textarea 
                         name="correct_answer" 
                         placeholder="關鍵字 (用逗號分隔，只要包含任一關鍵字即算正確)" 
-                        className="input-field w-full h-24" 
+                        className="input-field w-full h-24 resize-none" 
                         defaultValue={editingItem?.correct_answer}
                         required={hasCorrectAnswer}
                       />
@@ -983,10 +997,13 @@ export default function AdminPanel() {
                   <input name="image_url" placeholder="圖片網址 (選填)" className="input-field" defaultValue={editingItem?.image_url} />
                   <input name="audio_url" placeholder="音訊網址 (選填)" className="input-field" defaultValue={editingItem?.audio_url} />
                   <input name="explanation" placeholder="解析 / 重點說明" className="input-field col-span-2" defaultValue={editingItem?.explanation} />
-                </>
-              )}
-            </div>
-            <div className="flex justify-end gap-4 mt-8 pt-4 border-t border-cream/10">
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Footer - Fixed */}
+            <div className="flex justify-end gap-4 mt-6 pt-4 border-t border-cream/10 flex-shrink-0">
               <button type="button" onClick={() => setIsModalOpen(false)} className="btn-secondary">取消</button>
               <button type="submit" className="btn-primary">確認儲存</button>
             </div>

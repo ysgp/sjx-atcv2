@@ -245,12 +245,12 @@ export default function QuizPage() {
       {/* Step 3: 測驗進行中 */}
       {step === 3 && (
         <div className="space-y-6">
-          <div className="sticky top-20 z-10 bg-accent text-cream px-6 py-3 rounded-xl font-bold shadow-xl flex justify-between items-center">
-            <span className="flex items-center gap-2">
+          <div className="sticky top-20 z-10 bg-accent text-cream px-4 sm:px-6 py-3 rounded-xl font-bold shadow-xl flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+            <span className="flex items-center gap-2 text-sm sm:text-base">
               <User className="w-4 h-4" />
               {callsign}
             </span>
-            <span className="text-sm bg-cream/20 px-3 py-1 rounded-lg">章節測驗</span>
+            <span className="text-xs sm:text-sm bg-cream/20 px-3 py-1 rounded-lg self-start sm:self-auto">章節測驗</span>
           </div>
 
           {questions.map((q, idx) => (

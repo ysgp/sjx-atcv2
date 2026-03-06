@@ -203,13 +203,13 @@ const submitExam = async () => {
 
       {step === 2 && (
         <div>
-          <div className="sticky top-20 z-10 bg-accent text-cream font-bold p-4 rounded-xl flex justify-between items-center mb-8 shadow-xl">
-            <span className="flex items-center gap-2">
+          <div className="sticky top-20 z-10 bg-accent text-cream font-bold p-3 sm:p-4 rounded-xl flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-8 shadow-xl">
+            <span className="flex items-center gap-2 text-sm sm:text-base">
               <User className="w-4 h-4" />
               {callsign}
             </span>
-            <span className={`text-xl flex items-center gap-2 ${timeLeft < 300 ? 'text-red-200 animate-pulse' : ''}`}>
-              <Clock className="w-5 h-5" />
+            <span className={`text-lg sm:text-xl flex items-center gap-2 ${timeLeft < 300 ? 'text-red-200 animate-pulse' : ''}`}>
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
               {formatTime(timeLeft)}
             </span>
           </div>

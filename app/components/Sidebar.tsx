@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { Home, BookOpen, Trophy, ClipboardList, Settings } from 'lucide-react';
+import { Home, BookOpen, Trophy, ClipboardList, Settings, X } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: '首頁', icon: 'home' },
@@ -24,14 +24,21 @@ function NavIcon({ icon, className }: { icon: string; className?: string }) {
   }
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-primary-dark border-r border-cream/10 flex flex-col fixed h-full z-40">
+    <aside className={`w-64 bg-primary-dark border-r border-cream/10 flex flex-col fixed h-full z-40 transition-transform duration-300 lg:translate-x-0 ${
+      isOpen ? 'translate-x-0' : '-translate-x-full'
+    }`}>
       {/* Logo */}
-      <div className="h-[72px] px-6 border-b border-cream/10 flex items-center">
-        <Link href="/" className="block">
+      <div className="h-[72px] px-6 border-b border-cream/10 flex items-center justify-between">
+        <Link href="/" className="block" onClick={onClose}>
           <Image 
             src="/logo.png" 
             alt="Virtual Starlux" 
@@ -41,6 +48,15 @@ export default function Sidebar() {
             priority
           />
         </Link>
+        
+        {/* Close button for mobile */}
+        <button
+          onClick={onClose}
+          className="lg:hidden text-cream/60 hover:text-cream transition-colors"
+          aria-label="關閉選單"
+        >
+          <X className="w-6 h-6" />
+        </button>
       </div>
       
       {/* Navigation */}
@@ -53,6 +69,7 @@ export default function Sidebar() {
               key={item.href}
               href={item.href}
               className={isActive ? 'sidebar-link-active' : 'sidebar-link'}
+              onClick={onClose}
             >
               <NavIcon icon={item.icon} />
               <span>{item.label}</span>

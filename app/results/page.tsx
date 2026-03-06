@@ -93,38 +93,38 @@ export default function ResultsPage() {
         )}
         
         {results.map((res) => (
-          <div key={res.id} className="card flex justify-between items-center border-l-4 border-l-accent">
-            <div className="flex items-start gap-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${res.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+          <div key={res.id} className="card flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-l-4 border-l-accent">
+            <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center ${res.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
                 {res.passed ? (
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-400" />
                 )}
               </div>
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold ${res.exam_type === 'quiz' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                  <span className={`text-xs px-2 py-0.5 rounded-lg font-semibold whitespace-nowrap ${res.exam_type === 'quiz' ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>
                     {res.exam_type.toUpperCase()}
                   </span>
-                  <span className="font-bold text-lg text-cream">
+                  <span className="font-bold text-base sm:text-lg text-cream truncate">
                     {res.exam_type === 'quiz' ? res.sjx_chapters?.chapter_name : '結訓考試'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-cream/50 text-sm">
-                  <Calendar className="w-4 h-4" />
-                  {new Date(res.created_at).toLocaleString()}
+                <div className="flex items-center gap-2 text-cream/50 text-xs sm:text-sm">
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{new Date(res.created_at).toLocaleString()}</span>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className={`text-2xl font-bold ${res.passed ? 'text-green-400' : 'text-red-400'}`}>{res.score}</p>
+            <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
+              <div className="text-left sm:text-right">
+                <p className={`text-xl sm:text-2xl font-bold ${res.passed ? 'text-green-400' : 'text-red-400'}`}>{res.score}</p>
                 <p className="text-xs uppercase text-cream/40">{res.passed ? 'Passed' : 'Failed'}</p>
               </div>
               {res.exam_type === 'quiz' && (
-                <button className="btn-secondary text-sm" onClick={() => showDetails(res)}>詳情</button>
+                <button className="btn-secondary text-xs sm:text-sm whitespace-nowrap" onClick={() => showDetails(res)}>詳情</button>
               )}
             </div>
           </div>
@@ -133,23 +133,23 @@ export default function ResultsPage() {
 
       {/* 小考詳情彈窗 */}
       {selectedQuiz && (
-        <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-primary-light w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-xl border border-cream/20 shadow-2xl">
-            <div className="sticky top-0 bg-primary-light border-b border-cream/10 p-6 flex justify-between items-center">
-              <h3 className="text-xl text-accent font-bold">答題紀錄: {selectedQuiz.sjx_chapters?.chapter_name}</h3>
-              <button onClick={() => setSelectedQuiz(null)} className="w-8 h-8 rounded-full bg-cream/10 flex items-center justify-center hover:bg-cream/20 transition-colors">
+        <div className="fixed inset-0 bg-primary/90 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-primary-light w-full max-w-full sm:max-w-md md:max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-cream/20 shadow-2xl">
+            <div className="sticky top-0 bg-primary-light border-b border-cream/10 p-4 sm:p-6 flex justify-between items-center">
+              <h3 className="text-base sm:text-xl text-accent font-bold truncate pr-2">答題紀錄: {selectedQuiz.sjx_chapters?.chapter_name}</h3>
+              <button onClick={() => setSelectedQuiz(null)} className="w-8 h-8 flex-shrink-0 rounded-full bg-cream/10 flex items-center justify-center hover:bg-cream/20 transition-colors">
                 <X className="w-5 h-5 text-cream" />
               </button>
             </div>
             
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               {selectedQuiz.questions?.map((q: any, idx: number) => {
                 const userAns = selectedQuiz.detailed_answers[q.id];
                 const isCorrect = userAns === q.correct_answer;
                 return (
-                  <div key={q.id} className={`p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
-                    <p className="text-cream mb-3">{idx + 1}. {q.question_text}</p>
-                    <div className="text-sm flex items-center gap-4">
+                  <div key={q.id} className={`p-3 sm:p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
+                    <p className="text-cream text-sm sm:text-base mb-2 sm:mb-3">{idx + 1}. {q.question_text}</p>
+                    <div className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                       <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>
                         你的答案: {userAns?.toUpperCase() || '未答'}
                       </span>
@@ -160,7 +160,7 @@ export default function ResultsPage() {
                       )}
                     </div>
                     {q.explanation && (
-                      <p className="text-cream/50 mt-3 text-sm bg-primary-dark p-3 rounded-lg">解析: {q.explanation}</p>
+                      <p className="text-cream/50 mt-2 sm:mt-3 text-xs sm:text-sm bg-primary-dark p-2 sm:p-3 rounded-lg">解析: {q.explanation}</p>
                     )}
                   </div>
                 );
