@@ -8,6 +8,13 @@ export default function ResultsPage() {
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
+  
+  // 自定義對話框狀態
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState<{
+    title: string;
+    message: string;
+  }>({ title: '', message: '' });
 
   const fetchResults = async () => {
     setLoading(true);
@@ -20,14 +27,24 @@ export default function ResultsPage() {
       .eq('callsign', callsign.toUpperCase())
       .order('created_at', { ascending: false });
 
-    if (error) alert('查詢出錯');
+    if (error) {
+      setDialogConfig({
+        title: '查詢失敗',
+        message: '無法讀取成績資料，請稍後再試'
+      });
+      setDialogOpen(true);
+    }
     else setResults(data || []);
     setLoading(false);
   };
 
   const showDetails = async (res: any) => {
     if (res.exam_type === 'final') {
-      alert('結訓考試不提供詳細內容查詢。');
+      setDialogConfig({
+        title: '無法查看',
+        message: '結訓考試不提供詳細內容查詢。'
+      });
+      setDialogOpen(true);
       return;
     }
     // 抓取題目資訊來比對答案
@@ -148,6 +165,33 @@ export default function ResultsPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 自定義對話框 */}
+      {dialogOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-md border border-cream/20 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-cream mb-2">{dialogConfig.title}</h3>
+                <p className="text-cream/70">{dialogConfig.message}</p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button 
+                onClick={() => setDialogOpen(false)} 
+                className="btn-primary"
+              >
+                確定
+              </button>
             </div>
           </div>
         </div>

@@ -11,12 +11,26 @@ export default function FinalExamPage() {
   const [timeLeft, setTimeLeft] = useState(3600); // 60 分鐘 = 3600 秒
   const [examResult, setExamResult] = useState<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // 自定義對話框狀態
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState<{
+    title: string;
+    message: string;
+  }>({ title: '', message: '' });
 
   // 驗證呼號與資格
   const startExam = async () => {
     // 1. 檢查學生是否存在
     const { data: student } = await supabase.from('sjx_students').select('*').eq('callsign', callsign).single();
-    if (!student) return alert('找不到該呼號 (Callsign)');
+    if (!student) {
+      setDialogConfig({
+        title: '查詢失敗',
+        message: '找不到該呼號 (Callsign)，請聯繫教官建立資料'
+      });
+      setDialogOpen(true);
+      return;
+    }
 
     // 2. 檢查是否已經通過結訓考試
     const { data: pastPass } = await supabase
@@ -28,7 +42,11 @@ export default function FinalExamPage() {
       .limit(1);
 
     if (pastPass && pastPass.length > 0) {
-      alert('您已通過結訓考試，無需重複考試。');
+      setDialogConfig({
+        title: '已通過考試',
+        message: '您已通過結訓考試，無需重複考試。'
+      });
+      setDialogOpen(true);
       return;
     }
 
@@ -39,7 +57,11 @@ export default function FinalExamPage() {
       .eq('exam_type', 'final');
     
     if (!ques || ques.length < 20) {
-      alert('題庫數量不足 (需至少 20 題)，請聯絡教官。');
+      setDialogConfig({
+        title: '題庫不足',
+        message: '題庫數量不足 (需至少 20 題)，請聯絡教官。'
+      });
+      setDialogOpen(true);
       return;
     }
 
@@ -62,22 +84,62 @@ export default function FinalExamPage() {
     }, 1000);
   };
 
- const submitExam = async () => {
+const submitExam = async () => {
   if (timerRef.current) clearInterval(timerRef.current);
 
   let correctCount = 0;
+  let gradedQuestions = 0; // 計算有正確答案的題目數量
+  
   questions.forEach(q => {
-    // 強制轉小寫比對
-    const userAns = (answers[q.id] || "").toLowerCase().trim();
-    const correctAns = (q.correct_answer || "").toLowerCase().trim();
+    // 如果題目沒有正確答案，跳過計分
+    if (q.has_correct_answer === 'false' || !q.correct_answer) {
+      return;
+    }
     
-    if (userAns === correctAns) {
+    gradedQuestions++;
+    const userAns = (answers[q.id] || "").trim();
+    const correctAns = (q.correct_answer || "").trim();
+    const questionType = q.question_type || 'single_choice';
+    
+    let isCorrect = false;
+
+    switch (questionType) {
+      case 'single_choice':
+        isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
+        break;
+
+      case 'multiple_choice':
+        const userSorted = userAns.toLowerCase().split('').sort().join('');
+        const correctSorted = correctAns.toLowerCase().split('').sort().join('');
+        isCorrect = userSorted === correctSorted;
+        break;
+
+      case 'true_false':
+        isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
+        break;
+
+      case 'fill_blank':
+        const possibleAnswers = correctAns.split(',').map(a => a.trim().toLowerCase());
+        isCorrect = possibleAnswers.includes(userAns.toLowerCase());
+        break;
+
+      case 'short_answer':
+        const keywords = correctAns.split(',').map(k => k.trim().toLowerCase());
+        const userAnswerLower = userAns.toLowerCase();
+        isCorrect = keywords.some(keyword => userAnswerLower.includes(keyword));
+        break;
+
+      default:
+        isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
+    }
+
+    if (isCorrect) {
       correctCount++;
     }
   });
 
-  // 計算百分制分數
-  const score = Math.round((correctCount / questions.length) * 100);
+  // 根據有正確答案的題目數量計算實際分數
+  const score = gradedQuestions > 0 ? Math.round((correctCount / gradedQuestions) * 100) : 0;
   const passed = score >= 80; // 結訓需 80 分
 
   const finalData = {
@@ -155,32 +217,147 @@ export default function FinalExamPage() {
                 </div>
                 <p className="mb-6 text-lg text-cream">{q.question_text}</p>
                 {q.image_url && <img src={q.image_url} alt="Exam" className="mb-4 rounded-lg max-h-64 border border-cream/10" />}
+                {q.audio_url && (
+                  <div className="mb-4 bg-primary-dark border border-accent/30 p-4 rounded-lg flex items-center gap-4">
+                    <span className="text-xs font-bold text-accent uppercase">播放音訊:</span>
+                    <audio controls src={q.audio_url} className="h-10 flex-1">
+                      Your browser does not support the audio element.
+                    </audio>
+                  </div>
+                )}
+                
+                {/* 根據題型顯示不同的UI */}
                 <div className="grid grid-cols-1 gap-3">
-                  {['a', 'b', 'c', 'd'].map(opt => (
-                    q[`option_${opt}`] && (
-                      <button 
-                        key={opt}
-                        onClick={() => setAnswers({...answers, [q.id]: opt})}
-                        className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
-                          answers[q.id] === opt 
-                          ? 'border-accent bg-accent/20 text-cream font-bold' 
-                          : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
-                        }`}
-                      >
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${
-                          answers[q.id] === opt ? 'bg-accent text-cream border-accent' : 'border-cream/30'
-                        }`}>
-                          {opt.toUpperCase()}
-                        </span>
-                        {q[`option_${opt}`]}
-                      </button>
-                    )
-                  ))}
+                  {/* 單選題 */}
+                  {(!q.question_type || q.question_type === 'single_choice') && (
+                    <>
+                      {['a', 'b', 'c', 'd'].map(opt => (
+                        q[`option_${opt}`] && (
+                          <button 
+                            key={opt}
+                            onClick={() => setAnswers({...answers, [q.id]: opt})}
+                            className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
+                              answers[q.id] === opt 
+                              ? 'border-accent bg-accent/20 text-cream font-bold' 
+                              : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
+                            }`}
+                          >
+                            <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${
+                              answers[q.id] === opt ? 'bg-accent text-cream border-accent' : 'border-cream/30'
+                            }`}>
+                              {opt.toUpperCase()}
+                            </span>
+                            {q[`option_${opt}`]}
+                          </button>
+                        )
+                      ))}
+                    </>
+                  )}
+
+                  {/* 多選題 */}
+                  {q.question_type === 'multiple_choice' && (
+                    <>
+                      <p className="text-xs text-accent mb-2">※ 可選擇多個答案</p>
+                      {['a', 'b', 'c', 'd'].map(opt => {
+                        if (!q[`option_${opt}`]) return null;
+                        const selected = (answers[q.id] || '').split('').includes(opt);
+                        return (
+                          <button 
+                            key={opt}
+                            onClick={() => {
+                              const current = answers[q.id] || '';
+                              const currentArray = current.split('').filter(x => x);
+                              if (currentArray.includes(opt)) {
+                                setAnswers({...answers, [q.id]: currentArray.filter(x => x !== opt).sort().join('')});
+                              } else {
+                                setAnswers({...answers, [q.id]: [...currentArray, opt].sort().join('')});
+                              }
+                            }}
+                            className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
+                              selected 
+                              ? 'border-accent bg-accent/20 text-cream font-bold' 
+                              : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                                selected ? 'bg-accent border-accent' : 'border-cream/40'
+                              }`}>
+                                {selected && (
+                                  <svg className="w-4 h-4 text-cream" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-primary-dark border border-cream/30">
+                                {opt.toUpperCase()}
+                              </span>
+                            </div>
+                            <span className="flex-1">{q[`option_${opt}`]}</span>
+                          </button>
+                        );
+                      })}
+                    </>
+                  )}
+
+                  {/* 是非題 */}
+                  {q.question_type === 'true_false' && (
+                    <>
+                      {['true', 'false'].map(opt => (
+                        <button 
+                          key={opt}
+                          onClick={() => setAnswers({...answers, [q.id]: opt})}
+                          className={`p-4 text-left rounded-lg border transition-all flex items-center gap-4 ${
+                            answers[q.id] === opt 
+                            ? 'border-accent bg-accent/20 text-cream font-bold' 
+                            : 'border-cream/10 bg-primary-dark text-cream/70 hover:border-cream/30'
+                          }`}
+                        >
+                          <span className={`w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold border ${
+                            answers[q.id] === opt ? 'bg-accent text-cream border-accent' : 'border-cream/30'
+                          }`}>
+                            {opt === 'true' ? '✓' : '✗'}
+                          </span>
+                          <span className="text-lg">{opt === 'true' ? '正確 (True)' : '錯誤 (False)'}</span>
+                        </button>
+                      ))}
+                    </>
+                  )}
+
+                  {/* 填空題 */}
+                  {q.question_type === 'fill_blank' && (
+                    <input
+                      type="text"
+                      value={answers[q.id] || ''}
+                      onChange={(e) => setAnswers({...answers, [q.id]: e.target.value})}
+                      placeholder="請輸入答案"
+                      className="input-field w-full text-lg p-4"
+                    />
+                  )}
+
+                  {/* 簡答題 */}
+                  {q.question_type === 'short_answer' && (
+                    <textarea
+                      value={answers[q.id] || ''}
+                      onChange={(e) => setAnswers({...answers, [q.id]: e.target.value})}
+                      placeholder="請輸入答案"
+                      className="input-field w-full text-lg p-4 min-h-[120px]"
+                      rows={4}
+                    />
+                  )}
                 </div>
               </div>
             ))}
           </div>
-          <button className="btn-primary w-full py-4 text-lg mt-8 mb-20" onClick={() => { if(confirm('確定要提交試卷嗎？')) submitExam(); }}>提交結訓試卷</button>
+          <button className="btn-primary w-full py-4 text-lg mt-8 mb-20" onClick={() => { 
+            setDialogConfig({
+              type: 'confirm',
+              title: '確定提交？',
+              message: '提交後將無法修改答案，確定要提交結訓試卷嗎？',
+              onConfirm: submitExam
+            });
+            setDialogOpen(true);
+          }}>提交結訓試卷</button>
         </div>
       )}
 
@@ -208,6 +385,54 @@ export default function FinalExamPage() {
             <Home className="w-4 h-4" />
             回到首頁
           </button>
+        </div>
+      )}
+
+      {/* 自定義對話框 */}
+      {dialogOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card w-full max-w-md border border-cream/20 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-4 mb-6">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                dialogConfig.type === 'confirm' ? 'bg-amber-500/20' : 'bg-accent/20'
+              }`}>
+                {dialogConfig.type === 'confirm' ? (
+                  <svg className="w-6 h-6 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-cream mb-2">{dialogConfig.title}</h3>
+                <p className="text-cream/70">{dialogConfig.message}</p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              {dialogConfig.type === 'confirm' && (
+                <button 
+                  onClick={() => setDialogOpen(false)} 
+                  className="btn-secondary"
+                >
+                  取消
+                </button>
+              )}
+              <button 
+                onClick={() => {
+                  setDialogOpen(false);
+                  if (dialogConfig.onConfirm) {
+                    dialogConfig.onConfirm();
+                  }
+                }} 
+                className="btn-primary"
+              >
+                確定
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
