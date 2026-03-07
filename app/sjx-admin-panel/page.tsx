@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Lock, Users, BookOpen, FileQuestion, ClipboardList, Plus, Pencil, Trash2, Download, FileText, X, Search, ChevronDown, LogOut } from 'lucide-react';
+import { Lock, Users, BookOpen, FileQuestion, ClipboardList, Plus, Pencil, Trash2, Download, FileText, X, Search, ChevronDown, LogOut, ClipboardCheck } from 'lucide-react';
 import { CustomSelect } from '@/app/components';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function AdminPanel() {
   const [isAuth, setIsAuth] = useState(false);
@@ -16,7 +17,7 @@ export default function AdminPanel() {
   const [data, setData] = useState<any[]>([]);
   const [chapters, setChapters] = useState<any[]>([]);
   
-  const [filterType, setFilterType] = useState<'all' | 'quiz' | 'final'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'quiz' | 'final' | 'rating_atc' | 'rating_a350' | 'rating_a321a339'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer'>('single_choice');
@@ -202,6 +203,468 @@ export default function AdminPanel() {
   };
 
   const exportDetailPDF = async (resultItem: any) => {
+    // Handle Rating type results with jsPDF (same format as Rating Forms)
+    if (resultItem.exam_type.startsWith('rating_')) {
+      const details = resultItem.detailed_answers || {};
+      const doc = new jsPDF();
+      const accentColor: [number, number, number] = [153, 106, 78]; // #996A4E
+      const darkColor: [number, number, number] = [47, 57, 68]; // #2F3944
+
+      // Logo
+      const logoImg = new window.Image();
+      logoImg.src = '/logo_dark.png';
+      await new Promise((resolve) => { logoImg.onload = resolve; logoImg.onerror = resolve; });
+      if (logoImg.naturalWidth) {
+        const logoAspect = logoImg.naturalWidth / logoImg.naturalHeight;
+        const logoHeight = 12;
+        const logoWidth = logoHeight * logoAspect;
+        doc.addImage(logoImg, 'PNG', 14, 10, logoWidth, logoHeight);
+      }
+
+      // Header right side - different format per rating type
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      if (resultItem.exam_type === 'rating_a321a339') {
+        doc.text('FORM: OPS-A32X33X-TR', 196, 12, { align: 'right' });
+        doc.text('FLIGHT OPERATIONS DIVISION', 196, 17, { align: 'right' });
+        doc.text('VIRTUAL STARLUX AIRLINES', 196, 22, { align: 'right' });
+      } else if (resultItem.exam_type === 'rating_a350') {
+        doc.text('FORM: OPS-A350-TR-V2', 196, 12, { align: 'right' });
+        doc.text('FLIGHT OPERATIONS DIVISION', 196, 17, { align: 'right' });
+        doc.text('VIRTUAL STARLUX AIRLINES', 196, 22, { align: 'right' });
+      } else {
+        doc.text('E-DOCUMENT: TRA-ATC-01', 196, 12, { align: 'right' });
+        doc.text('TRAINING DIVISION', 196, 17, { align: 'right' });
+        doc.text('VIRTUAL STARLUX AIRLINES', 196, 22, { align: 'right' });
+      }
+
+      // Title
+      const titleMap: Record<string, string> = {
+        'rating_atc': 'ATC TRAINING FINAL RATING',
+        'rating_a350': 'A350 TYPE RATING CHECK',
+        'rating_a321a339': 'A321neo / A330-900neo TYPE RATING',
+      };
+      doc.setFontSize(resultItem.exam_type === 'rating_a321a339' ? 16 : 18);
+      doc.setTextColor(...darkColor);
+      doc.setFont('helvetica', 'bold');
+      doc.text(titleMap[resultItem.exam_type] || 'TYPE RATING CHECK', 14, 38);
+
+      // Basic Info - different label for A321A339
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text((resultItem.exam_type === 'rating_a321a339' || resultItem.exam_type === 'rating_a350') ? 'PILOT NAME' : 'STUDENT NAME', 14, 48);
+      doc.text('CALLSIGN', 90, 48);
+      doc.text('DATE', 155, 48);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(0);
+      doc.text(details.pilot_name || '-', 14, 55);
+      doc.text(resultItem.callsign || '-', 90, 55);
+      doc.text(details.date || new Date(resultItem.created_at).toLocaleDateString(), 155, 55);
+      doc.setDrawColor(200);
+      doc.line(14, 57, 85, 57);
+      doc.line(90, 57, 150, 57);
+      doc.line(155, 57, 196, 57);
+
+      let y = 65;
+
+      // Rating-specific content
+      if (resultItem.exam_type === 'rating_atc') {
+        // Part I
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART I: COMMUNICATIONS & PHONETICS', 16, y + 5.5);
+        doc.text('50%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['TASK', 'DESCRIPTION', 'SCORE (Max)']],
+          body: [
+            ['Phonetics & Numbers', 'Standard alphabet and number accuracy (Ch.3)', `${details.communications?.phonetics || 0} / 20`],
+            ['Readback Accuracy', 'Clearance readback precision (Ch.11)', `${details.communications?.readback || 0} / 20`],
+            ['Radio Discipline', 'Concise communications (Ch.4) - No filler words', `${details.communications?.radioDiscipline || 0} / 10`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontStyle: 'normal', fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 0: { fontStyle: 'bold' }, 2: { halign: 'center' } },
+          theme: 'grid',
+        });
+
+        // Part II
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART II: PROCEDURES & SECTORS', 16, y + 5.5);
+        doc.text('30%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['TASK', 'DESCRIPTION', 'SCORE (Max)']],
+          body: [
+            ['Sector Handover', 'Position transfer logic (Ch.13) - Correct sequence', `${details.procedural?.sectorHandover || 0} / 15`],
+            ['Navigation / Charting', 'Route understanding (Ch.12) - SID/STAR knowledge', `${details.procedural?.navigation || 0} / 15`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontStyle: 'normal', fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 0: { fontStyle: 'bold' }, 2: { halign: 'center' } },
+          theme: 'grid',
+        });
+
+        // Part III
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART III: MISSIONS & EMERGENCY', 16, y + 5.5);
+        doc.text('20%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['TASK', 'DESCRIPTION', 'SCORE (Max)']],
+          body: [
+            ['Emergency Response', 'Emergency handling (Ch.15) - Mayday/NITS format', `${details.situational?.emergencyResponse || 0} / 20`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontStyle: 'normal', fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 0: { fontStyle: 'bold' }, 2: { halign: 'center' } },
+          theme: 'grid',
+        });
+      } else if (resultItem.exam_type === 'rating_a321a339') {
+        // Part I - exactly like A321A339RatingForm
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART I: CROSS-BORDER CHALLENGE - RCKH to VHHX - 40 pts', 16, y + 5.5);
+        doc.text('40%', 190, y + 5.5, { align: 'right' });
+
+        const isRouteSelected = details.route === 'rckh_vhhx';
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['ROUTE', 'STANDARDS & PERFORMANCE', 'SCORE (MAX)']],
+          body: [
+            [`${isRouteSelected ? '[X] ' : '[ ] '}RCKH to VHHX`, `FPM: ${details.crossBorderData?.fpm || 'N/A'}  |  G: ${details.crossBorderData?.g || 'N/A'}`, `${details.crossBorderData?.score || 0} / 40`],
+            ['Part I Subtotal (ATC Compliance / Approach Stability)', '', `${details.part1Score || 0} / 40`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+          didParseCell: (data: any) => {
+            if (data.section === 'body' && data.row.index === 0 && !isRouteSelected) {
+              data.cell.styles.textColor = [180, 180, 180];
+            }
+          },
+        });
+
+        // Part II
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART II: VISUAL CIRCUITS - Local RCTP - 40 pts', 16, y + 5.5);
+        doc.text('40%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['SCENARIO', 'TOUCHDOWN DATA & STANDARD', 'SCORE (MAX)']],
+          body: [
+            ['T/G (x1)', `FPM: ${details.visualCircuits?.tg?.fpm || '-'}  |  G: ${details.visualCircuits?.tg?.g || '-'}  (Max -250 FPM, 1.25 G)`, `${details.visualCircuits?.tg?.score || 0} / 10`],
+            ['Cloud Cap', `FPM: ${details.visualCircuits?.cloudCap?.fpm || '-'}  |  G: ${details.visualCircuits?.cloudCap?.g || '-'}  (Max -300 FPM, 1.25 G)`, `${details.visualCircuits?.cloudCap?.score || 0} / 15`],
+            ['Crosswind', `FPM: ${details.visualCircuits?.crosswind?.fpm || '-'}  |  G: ${details.visualCircuits?.crosswind?.g || '-'}  (Max -400 FPM, 1.45 G)`, `${details.visualCircuits?.crosswind?.score || 0} / 15`],
+            ['Part II Subtotal (Side-slip / Centerline / Config)', '', `${details.part2Score || 0} / 40`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+        });
+
+        // Part III
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART III: RANDOM EMERGENCY - 20 pts', 16, y + 5.5);
+        doc.text('20%', 190, y + 5.5, { align: 'right' });
+
+        const emergencyLabels: Record<string, string> = {
+          'fuel_leak': 'Fuel Leak - Close crossfeed, ECAM actions, diversion decision',
+          'eng_fire': 'ENG Fire - Memory Items, ECAM Actions, fire extinguisher, Mayday',
+          'eng_fail': 'ENG Fail - Identify symptoms, adjust approach, beta target, heading',
+        };
+        const emergencyType = details.emergency?.type || details.emergencyType || '';
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['EMERGENCY TYPE', 'HANDLING STANDARD', 'SCORE (MAX)']],
+          body: [
+            [`${emergencyType === 'fuel_leak' ? '[X]' : '[ ]'} Fuel Leak`, emergencyLabels['fuel_leak'], `${emergencyType === 'fuel_leak' ? (details.emergency?.score || details.part3Score || 0) : 0} / 20`],
+            [`${emergencyType === 'eng_fire' ? '[X]' : '[ ]'} ENG Fire`, emergencyLabels['eng_fire'], `${emergencyType === 'eng_fire' ? (details.emergency?.score || details.part3Score || 0) : 0} / 20`],
+            [`${emergencyType === 'eng_fail' ? '[X]' : '[ ]'} ENG Fail`, emergencyLabels['eng_fail'], `${emergencyType === 'eng_fail' ? (details.emergency?.score || details.part3Score || 0) : 0} / 20`],
+            ['Part III Subtotal (Procedures / Decision Making)', '', `${details.part3Score || 0} / 20`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+          didParseCell: (data: any) => {
+            const emergencyTypes = ['fuel_leak', 'eng_fire', 'eng_fail'];
+            if (data.section === 'body' && data.row.index < 3) {
+              const isSelected = emergencyType === emergencyTypes[data.row.index];
+              if (!isSelected) {
+                data.cell.styles.textColor = [180, 180, 180];
+              }
+            }
+          },
+        });
+      } else if (resultItem.exam_type === 'rating_a350') {
+        // Part I - exactly like A350RatingForm
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART I: IFR OPERATIONS - Select One Route - 40 pts', 16, y + 5.5);
+        doc.text('40%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['ROUTE', 'DATA & CRITERIA', 'SCORE (MAX)']],
+          body: [
+            [`${details.selectedRoute === 'route1' ? '[X]' : '[ ]'} RCTP > RCKH`, `FPM: ${details.ifrOperations?.route1?.fpm || '-'}  |  G: ${details.ifrOperations?.route1?.g || '-'}  (< -270 FPM, < 1.2G)`, `${details.selectedRoute === 'route1' ? (details.ifrOperations?.route1?.score || 0) : '-'} / 40`],
+            [`${details.selectedRoute === 'route2' ? '[X]' : '[ ]'} RCKH > RCTP`, `FPM: ${details.ifrOperations?.route2?.fpm || '-'}  |  G: ${details.ifrOperations?.route2?.g || '-'}  (< -270 FPM, < 1.2G)`, `${details.selectedRoute === 'route2' ? (details.ifrOperations?.route2?.score || 0) : '-'} / 40`],
+            ['Part I Subtotal', '', `${details.part1Score || 0} / 40`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 9 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+          didParseCell: (data: any) => {
+            const routes = ['route1', 'route2'];
+            if (data.section === 'body' && data.row.index < 2) {
+              const isSelected = details.selectedRoute === routes[data.row.index];
+              if (!isSelected) {
+                data.cell.styles.textColor = [180, 180, 180];
+              }
+            }
+          },
+        });
+
+        // Part II
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART II: VISUAL CIRCUITS - Max -350 FPM / 1.3G - 40 pts', 16, y + 5.5);
+        doc.text('40%', 190, y + 5.5, { align: 'right' });
+
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['TASK', 'TOUCHDOWN DATA & STANDARD', 'SCORE (MAX)']],
+          body: [
+            ['Circuit 1', `FPM: ${details.visualCircuits?.circuit1?.fpm || '-'}  |  G: ${details.visualCircuits?.circuit1?.g || '-'}  (< -350 FPM, < 1.3G)`, `${details.visualCircuits?.circuit1?.score || 0} / 8`],
+            ['Circuit 2', `FPM: ${details.visualCircuits?.circuit2?.fpm || '-'}  |  G: ${details.visualCircuits?.circuit2?.g || '-'}  (< -350 FPM, < 1.3G)`, `${details.visualCircuits?.circuit2?.score || 0} / 8`],
+            ['Go Around', 'Missed Approach Procedure, Altitude Management, Track Confirmation', `${details.visualCircuits?.goAround || 0} / 8`],
+            ['Holding', 'Correct Entry, Standard < 230 KIAS, Altitude +/-100 ft, Return Navigation', `${details.visualCircuits?.holding || 0} / 8`],
+            ['Circuit 3', `FPM: ${details.visualCircuits?.circuit3?.fpm || '-'}  |  G: ${details.visualCircuits?.circuit3?.g || '-'}  (< -350 FPM, < 1.3G)`, `${details.visualCircuits?.circuit3?.score || 0} / 8`],
+            ['Part II Subtotal', '', `${details.part2Score || 0} / 40`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+        });
+
+        // Part III
+        y = (doc as any).lastAutoTable.finalY + 6;
+        doc.setFillColor(...accentColor);
+        doc.rect(14, y, 182, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PART III: EMERGENCY PROCEDURES - Select One - 20 pts', 16, y + 5.5);
+        doc.text('20%', 190, y + 5.5, { align: 'right' });
+
+        const emergencyType = details.emergency?.type || details.emergencyType || '';
+        autoTable(doc, {
+          startY: y + 10,
+          head: [['EMERGENCY TYPE', 'HANDLING STANDARD', 'SCORE (MAX)']],
+          body: [
+            [`${emergencyType === 'eng_fire' ? '[X]' : '[ ]'} ENG FIRE`, 'Memory Items > ECAM Actions > Eng Shutdown > Squawk 7700 > Diversion', `${emergencyType === 'eng_fire' ? (details.emergency?.score || details.part3Score || 0) : '-'} / 20`],
+            [`${emergencyType === 'bird_strike' ? '[X]' : '[ ]'} BIRD STRIKE`, 'ECAM Damage Check > Decision > Status Monitor > Diversion - Crew Coord', `${emergencyType === 'bird_strike' ? (details.emergency?.score || details.part3Score || 0) : '-'} / 20`],
+            [`${emergencyType === 'eng_failure' ? '[X]' : '[ ]'} ENG Failure`, 'ECAM Items > Route Adjustment', `${emergencyType === 'eng_failure' ? (details.emergency?.score || details.part3Score || 0) : '-'} / 20`],
+            ['Part III Subtotal', '', `${details.part3Score || 0} / 20`],
+          ],
+          headStyles: { fillColor: [245, 245, 245], textColor: [100, 100, 100], fontSize: 8 },
+          bodyStyles: { fontSize: 8 },
+          columnStyles: { 2: { halign: 'center' } },
+          theme: 'grid',
+          didParseCell: (data: any) => {
+            const emergencyTypes = ['eng_fire', 'bird_strike', 'eng_failure'];
+            if (data.section === 'body' && data.row.index < 3) {
+              const isSelected = emergencyType === emergencyTypes[data.row.index];
+              if (!isSelected) {
+                data.cell.styles.textColor = [180, 180, 180];
+              }
+            }
+          },
+        });
+      }
+
+      // Rating-specific Remarks and Result sections
+      if (resultItem.exam_type === 'rating_a321a339' || resultItem.exam_type === 'rating_a350') {
+        // Remarks - A321A339/A350 style
+        y = (doc as any).lastAutoTable.finalY + 8;
+        doc.setFontSize(9);
+        doc.setTextColor(...accentColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('EXAMINER REMARKS', 14, y);
+        doc.setDrawColor(200);
+        doc.rect(14, y + 3, 182, resultItem.exam_type === 'rating_a350' ? 15 : 18);
+        if (details.remarks) {
+          doc.setTextColor(0);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text(details.remarks, 16, y + 10, { maxWidth: 178 });
+        }
+
+        // Result & Score
+        y = y + (resultItem.exam_type === 'rating_a350' ? 22 : 26);
+        doc.setFillColor(250, 250, 250);
+        doc.rect(14, y, 90, 28, 'F');
+        doc.setDrawColor(200);
+        doc.rect(14, y, 90, 28);
+        
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('OVERALL RESULT', 16, y + 6);
+        
+        const resultConfig: Record<string, { label: string; color: [number, number, number] }> = {
+          fail: { label: 'FAIL', color: [220, 38, 38] },
+          partial: { label: 'PARTIAL', color: [217, 119, 6] },
+          passed: { label: 'PASSED', color: [22, 163, 74] },
+        };
+        
+        const resultKey = details.result || (resultItem.passed ? 'passed' : 'fail');
+        const selected = resultConfig[resultKey] || resultConfig['fail'];
+        doc.setFillColor(...selected.color);
+        doc.rect(16, y + 10, 50, 8, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text(selected.label, 41, y + 15, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+
+        doc.setFontSize(7);
+        doc.setTextColor(100);
+        doc.text('CHECK PILOT SIGNATURE', 16, y + 23);
+        doc.setTextColor(0);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.text(details.examiner || '-', 16, y + 27);
+
+        // Final Score Box - A321A339 style
+        doc.setFillColor(...darkColor);
+        doc.rect(110, y, 86, 28, 'F');
+        doc.setTextColor(...accentColor);
+        doc.setFontSize(7);
+        doc.text('FINAL RATING SCORE', 153, y + 5, { align: 'center' });
+        doc.setTextColor(255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text(resultItem.score.toString(), 153, y + 15, { align: 'center' });
+        doc.setFontSize(6);
+        doc.setTextColor(...accentColor);
+        doc.text('PASSING REQ: >= 80 / 100', 153, y + 19, { align: 'center' });
+        
+        // Part scores (inside box)
+        doc.setFontSize(5);
+        doc.setTextColor(180);
+        doc.text(`P1: ${details.part1Score || 0}`, 120, y + 25);
+        doc.text(`P2: ${details.part2Score || 0}`, 145, y + 25);
+        doc.text(`P3: ${details.part3Score || 0}`, 170, y + 25);
+      } else {
+        // Default Remarks for ATC and A350
+        y = (doc as any).lastAutoTable.finalY + 8;
+        doc.setFontSize(9);
+        doc.setTextColor(...accentColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text('INSTRUCTOR REMARKS', 14, y);
+        doc.setDrawColor(200);
+        doc.rect(14, y + 3, 182, 20);
+        if (details.remarks) {
+          doc.setTextColor(0);
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text(details.remarks, 16, y + 10, { maxWidth: 178 });
+        }
+
+        // Result & Score Section
+        y = y + 28;
+        doc.setFillColor(250, 250, 250);
+        doc.rect(14, y, 110, 22, 'F');
+        doc.setDrawColor(200);
+        doc.rect(14, y, 110, 22);
+        
+        const resultConfig: Record<string, { label: string; color: [number, number, number] }> = {
+          fail: { label: 'FAIL', color: [220, 38, 38] },
+          partial: { label: 'PARTIAL', color: [217, 119, 6] },
+          passed: { label: 'PASSED', color: [22, 163, 74] },
+        };
+        
+        const resultKey = details.result || (resultItem.passed ? 'passed' : 'fail');
+        const selected = resultConfig[resultKey] || resultConfig['fail'];
+        doc.setFillColor(...selected.color);
+        doc.rect(20, y + 6, 60, 10, 'F');
+        doc.setTextColor(255);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text(selected.label, 50, y + 13, { align: 'center' });
+
+        // Overall Score Box
+        doc.setFillColor(...darkColor);
+        doc.rect(130, y, 66, 22, 'F');
+        doc.setTextColor(...accentColor);
+        doc.setFontSize(8);
+        doc.text('OVERALL SCORE', 163, y + 5, { align: 'center' });
+        doc.setTextColor(255);
+        doc.setFontSize(24);
+        doc.setFont('helvetica', 'bold');
+        doc.text(resultItem.score.toString(), 163, y + 16, { align: 'center' });
+        doc.setFontSize(7);
+        doc.setTextColor(...accentColor);
+        doc.text('MINIMUM REQ: 80', 163, y + 20, { align: 'center' });
+
+        // Signature for ATC and A350
+        y = y + 28;
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text('INSTRUCTOR SIGNATURE', 14, y);
+        doc.setTextColor(0);
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'italic');
+        doc.text(details.examiner || '-', 14, y + 8);
+        doc.setDrawColor(0);
+        doc.line(14, y + 10, 100, y + 10);
+      }
+
+      // Open PDF in new window for preview
+      const pdfBlobUrl = doc.output('bloburl');
+      window.open(pdfBlobUrl, '_blank');
+      return;
+    }
+
+    // Original Quiz/Final logic
     const userAnswers = resultItem.detailed_answers || {};
     const { data: questions, error } = await supabase
       .from('sjx_questions')
@@ -596,6 +1059,15 @@ export default function AdminPanel() {
             </button>
           );
         })}
+        
+        {/* Rating Forms Link */}
+        <Link
+          href="/sjx-admin-panel/rating-forms"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold transition-all ml-auto bg-gradient-to-r from-purple-500/20 to-blue-500/20 text-cream border border-purple-500/30 hover:border-purple-500/50 hover:from-purple-500/30 hover:to-blue-500/30"
+        >
+          <ClipboardCheck className="w-4 h-4" />
+          考核表單
+        </Link>
       </div>
 
       {/* Action Bar */}
@@ -658,7 +1130,10 @@ export default function AdminPanel() {
                 options={[
                   { value: 'all', label: '全部類型' },
                   { value: 'quiz', label: 'Quiz' },
-                  { value: 'final', label: 'Final' }
+                  { value: 'final', label: 'Final' },
+                  { value: 'rating_atc', label: 'ATC Rating' },
+                  { value: 'rating_a350', label: 'A350 Rating' },
+                  { value: 'rating_a321a339', label: 'A321/A339 Rating' }
                 ]}
                 value={filterType}
                 onChange={(val) => setFilterType(val as any)}

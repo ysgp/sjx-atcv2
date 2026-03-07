@@ -44,7 +44,7 @@ export default function HomePage() {
           </div>
           <div>
             <p className="text-cream/50 text-sm">版本</p>
-            <p className="text-2xl font-bold text-cream">v2.1.1</p>
+            <p className="text-2xl font-bold text-cream">v2.2.0 Beta</p>
           </div>
         </div>
       </div>
