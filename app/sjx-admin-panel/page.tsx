@@ -22,6 +22,16 @@ export default function AdminPanel() {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [questionType, setQuestionType] = useState<'single_choice' | 'multiple_choice' | 'true_false' | 'fill_blank' | 'short_answer'>('single_choice');
   
+  // 題庫篩選狀態
+  const [questionFilterChapter, setQuestionFilterChapter] = useState<string>('all');
+  const [questionFilterExamType, setQuestionFilterExamType] = useState<string>('all');
+  const [questionFilterMedia, setQuestionFilterMedia] = useState<string>('all');
+  const [questionSearchQuery, setQuestionSearchQuery] = useState<string>('');
+  
+  // 學員篩選狀態
+  const [studentSearchQuery, setStudentSearchQuery] = useState<string>('');
+  const [studentFilterBatch, setStudentFilterBatch] = useState<string>('all');
+  
   // Modal form state
   const [selectedChapterId, setSelectedChapterId] = useState('');
   const [selectedExamType, setSelectedExamType] = useState('quiz');
@@ -1075,54 +1085,75 @@ export default function AdminPanel() {
         <h2 className="text-xl font-bold text-cream">{tabConfig[tab].label}</h2>
         <div className="flex gap-3">
           {tab === 'students' && (
-            <div className="relative">
-              <button 
-                onClick={() => setIsAddDropdownOpen(!isAddDropdownOpen)}
-                className="btn-primary flex items-center gap-2"
-                disabled={isLoadingVamsys}
-              >
-                <Plus className="w-4 h-4" />
-                新增學員
-                <ChevronDown className="w-4 h-4" />
-              </button>
-              {isAddDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40" 
-                    onClick={() => setIsAddDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-56 bg-navy-900/98 backdrop-blur-sm border border-cream/30 rounded-lg shadow-2xl z-50 overflow-hidden">
-                    <button
-                      onClick={() => {
-                        setIsAddDropdownOpen(false);
-                        setIsVamsysModalOpen(true);
-                        setVamsysPilots([]);
-                        setSelectedPilots(new Set());
-                        setVamsysSearchQuery('');
-                        setVamsysStep('select');
-                        fetchVamsysPilots();
-                      }}
-                      disabled={isLoadingVamsys}
-                      className="w-full px-4 py-3 text-left hover:bg-cream/15 transition-colors flex items-center gap-3 text-cream border-b border-cream/20"
-                    >
-                      <Users className="w-4 h-4" />
-                      <span>{isLoadingVamsys ? '載入中...' : '從 vAMSYS 同步'}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsAddDropdownOpen(false);
-                        setEditingItem(null);
-                        setIsModalOpen(true);
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-cream/15 transition-colors flex items-center gap-3 text-cream"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>手動新增學員</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cream/40" />
+                <input
+                  type="text"
+                  placeholder="搜尋學員..."
+                  value={studentSearchQuery}
+                  onChange={(e) => setStudentSearchQuery(e.target.value)}
+                  className="input-field pl-10 w-64"
+                />
+              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: '全部梯次' },
+                  ...Array.from(new Set(data.filter(d => d.batch).map(d => d.batch))).map(b => ({ value: b, label: b }))
+                ]}
+                value={studentFilterBatch}
+                onChange={(val) => setStudentFilterBatch(val)}
+                className="w-40"
+              />
+              <div className="relative">
+                <button 
+                  onClick={() => setIsAddDropdownOpen(!isAddDropdownOpen)}
+                  className="btn-primary flex items-center gap-2"
+                  disabled={isLoadingVamsys}
+                >
+                  <Plus className="w-4 h-4" />
+                  新增學員
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {isAddDropdownOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsAddDropdownOpen(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-56 bg-navy-900/98 backdrop-blur-sm border border-cream/30 rounded-lg shadow-2xl z-50 overflow-hidden">
+                      <button
+                        onClick={() => {
+                          setIsAddDropdownOpen(false);
+                          setIsVamsysModalOpen(true);
+                          setVamsysPilots([]);
+                          setSelectedPilots(new Set());
+                          setVamsysSearchQuery('');
+                          setVamsysStep('select');
+                          fetchVamsysPilots();
+                        }}
+                        disabled={isLoadingVamsys}
+                        className="w-full px-4 py-3 text-left hover:bg-cream/15 transition-colors flex items-center gap-3 text-cream border-b border-cream/20"
+                      >
+                        <Users className="w-4 h-4" />
+                        <span>{isLoadingVamsys ? '載入中...' : '從 vAMSYS 同步'}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsAddDropdownOpen(false);
+                          setEditingItem(null);
+                          setIsModalOpen(true);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-cream/15 transition-colors flex items-center gap-3 text-cream"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>手動新增學員</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </>
           )}
           {tab === 'results' && (
             <>
@@ -1143,6 +1174,51 @@ export default function AdminPanel() {
                 <Download className="w-4 h-4" />
                 匯出成績
               </button>
+            </>
+          )}
+          {tab === 'questions' && (
+            <>
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-cream/40" />
+                <input
+                  type="text"
+                  placeholder="搜尋題目..."
+                  value={questionSearchQuery}
+                  onChange={(e) => setQuestionSearchQuery(e.target.value)}
+                  className="input-field pl-10 w-64"
+                />
+              </div>
+              <CustomSelect
+                options={[
+                  { value: 'all', label: '全部章節' },
+                  ...chapters.map(ch => ({ value: ch.id, label: ch.chapter_name }))
+                ]}
+                value={questionFilterChapter}
+                onChange={(val) => setQuestionFilterChapter(val)}
+                className="w-48"
+              />
+              <CustomSelect
+                options={[
+                  { value: 'all', label: '全部類型' },
+                  { value: 'quiz', label: 'Quiz' },
+                  { value: 'final', label: 'Final' }
+                ]}
+                value={questionFilterExamType}
+                onChange={(val) => setQuestionFilterExamType(val)}
+                className="w-36"
+              />
+              <CustomSelect
+                options={[
+                  { value: 'all', label: '全部媒體' },
+                  { value: 'has_image', label: '有圖片' },
+                  { value: 'has_audio', label: '有音訊' },
+                  { value: 'has_media', label: '有媒體' },
+                  { value: 'no_media', label: '無媒體' }
+                ]}
+                value={questionFilterMedia}
+                onChange={(val) => setQuestionFilterMedia(val)}
+                className="w-36"
+              />
             </>
           )}
           {tab !== 'results' && tab !== 'students' && (
@@ -1176,14 +1252,49 @@ export default function AdminPanel() {
               </tr>
             </thead>
             <tbody className="divide-y divide-cream/5">
-              {data.filter(r => tab !== 'results' || (filterType === 'all' || r.exam_type === filterType)).map(item => (
+              {data.filter(r => {
+                // 成績篩選
+                if (tab === 'results') {
+                  return filterType === 'all' || r.exam_type === filterType;
+                }
+                // 學員篩選
+                if (tab === 'students') {
+                  const matchBatch = studentFilterBatch === 'all' || r.batch === studentFilterBatch;
+                  const matchSearch = !studentSearchQuery ||
+                    r.callsign?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+                    r.student_name?.toLowerCase().includes(studentSearchQuery.toLowerCase()) ||
+                    r.student_id?.toLowerCase().includes(studentSearchQuery.toLowerCase());
+                  return matchBatch && matchSearch;
+                }
+                // 題庫篩選
+                if (tab === 'questions') {
+                  const matchChapter = questionFilterChapter === 'all' || r.chapter_id === questionFilterChapter;
+                  const matchExamType = questionFilterExamType === 'all' || r.exam_type === questionFilterExamType;
+                  const matchMedia = 
+                    questionFilterMedia === 'all' ||
+                    (questionFilterMedia === 'has_image' && r.image_url) ||
+                    (questionFilterMedia === 'has_audio' && r.audio_url) ||
+                    (questionFilterMedia === 'has_media' && (r.image_url || r.audio_url)) ||
+                    (questionFilterMedia === 'no_media' && !r.image_url && !r.audio_url);
+                  const matchSearch = !questionSearchQuery || 
+                    (r.question_text?.toLowerCase().includes(questionSearchQuery.toLowerCase()) ||
+                     r.option_a?.toLowerCase().includes(questionSearchQuery.toLowerCase()) ||
+                     r.option_b?.toLowerCase().includes(questionSearchQuery.toLowerCase()) ||
+                     r.option_c?.toLowerCase().includes(questionSearchQuery.toLowerCase()) ||
+                     r.option_d?.toLowerCase().includes(questionSearchQuery.toLowerCase()));
+                  return matchChapter && matchExamType && matchMedia && matchSearch;
+                }
+                return true;
+              }).map(item => (
               <tr key={item.id} className="hover:bg-primary-dark/50 transition-colors group">
                 <td className="p-4 font-mono text-accent">{item.callsign || item.chapter_name || item.student_name}</td>
                 <td className="p-4 text-cream/60">
                   {tab === 'questions' ? (
                     <div className="flex flex-col gap-1">
                       <div className="max-w-md truncate text-cream">{(item.question_text || "").substring(0, 60)}...</div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {item.sjx_chapters?.chapter_name && <span className="text-[10px] bg-accent/20 text-accent px-2 py-0.5 rounded-lg">{item.sjx_chapters.chapter_name}</span>}
+                        <span className="text-[10px] bg-cream/10 text-cream/60 px-2 py-0.5 rounded-lg uppercase">{item.exam_type}</span>
                         {item.image_url && <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-lg">圖片</span>}
                         {item.audio_url && <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-lg">音訊</span>}
                       </div>

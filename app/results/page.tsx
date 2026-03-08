@@ -683,21 +683,70 @@ export default function ResultsPage() {
               {selectedQuiz.questions?.map((q: any, idx: number) => {
                 const userAns = selectedQuiz.detailed_answers[q.id];
                 const isCorrect = userAns === q.correct_answer;
+                const isMultipleChoice = q.question_type === 'multiple_choice';
+                const correctAnswers = q.correct_answer?.split(',').map((a: string) => a.trim().toLowerCase()) || [];
+                const userAnswers = userAns?.split('').filter((x: string) => x) || [];
+                
                 return (
                   <div key={q.id} className={`p-3 sm:p-4 rounded-lg border ${isCorrect ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
-                    <p className="text-cream text-sm sm:text-base mb-2 sm:mb-3">{idx + 1}. {q.question_text}</p>
-                    <div className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                      <span className={isCorrect ? 'text-green-400' : 'text-red-400'}>
-                        你的答案: {userAns?.toUpperCase() || '未答'}
-                      </span>
-                      {!isCorrect && (
-                        <span className="text-accent font-semibold">
-                          正確答案: {q.correct_answer.toUpperCase()}
-                        </span>
-                      )}
+                    <p className="text-cream text-sm sm:text-base mb-3 sm:mb-4">{idx + 1}. {q.question_text}</p>
+                    {isMultipleChoice && <p className="text-xs text-accent mb-2">※ 多選題</p>}
+                    
+                    {/* 顯示所有選項 */}
+                    <div className="space-y-2 mb-3">
+                      {['a', 'b', 'c', 'd'].map(opt => {
+                        if (!q[`option_${opt}`]) return null;
+                        const isUserSelected = isMultipleChoice 
+                          ? userAnswers.includes(opt)
+                          : userAns === opt;
+                        const isCorrectOption = isMultipleChoice
+                          ? correctAnswers.includes(opt)
+                          : q.correct_answer === opt;
+                        
+                        let optionStyle = 'border-cream/20 bg-primary-dark/50';
+                        if (isUserSelected && isCorrectOption) {
+                          optionStyle = 'border-green-500 bg-green-500/20';
+                        } else if (isUserSelected && !isCorrectOption) {
+                          optionStyle = 'border-red-500 bg-red-500/20';
+                        } else if (isCorrectOption) {
+                          optionStyle = 'border-accent bg-accent/10';
+                        }
+                        
+                        return (
+                          <div 
+                            key={opt}
+                            className={`p-2 sm:p-3 rounded-lg border flex items-center gap-3 ${optionStyle}`}
+                          >
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border ${
+                              isUserSelected && isCorrectOption ? 'bg-green-500 text-white border-green-500' :
+                              isUserSelected && !isCorrectOption ? 'bg-red-500 text-white border-red-500' :
+                              isCorrectOption ? 'bg-accent text-cream border-accent' :
+                              'border-cream/30 text-cream/50'
+                            }`}>
+                              {opt.toUpperCase()}
+                            </span>
+                            <span className={`text-sm flex-1 ${
+                              isUserSelected || isCorrectOption ? 'text-cream' : 'text-cream/70'
+                            }`}>
+                              {q[`option_${opt}`]}
+                            </span>
+                            {isUserSelected && (
+                              <span className={`text-xs px-2 py-0.5 rounded ${isCorrectOption ? 'bg-green-500/30 text-green-400' : 'bg-red-500/30 text-red-400'}`}>
+                                你的答案
+                              </span>
+                            )}
+                            {isCorrectOption && !isUserSelected && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-accent/30 text-accent">
+                                正確答案
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
+                    
                     {q.explanation && (
-                      <p className="text-cream/50 mt-2 sm:mt-3 text-xs sm:text-sm bg-primary-dark p-2 sm:p-3 rounded-lg">解析: {q.explanation}</p>
+                      <p className="text-cream/50 text-xs sm:text-sm bg-primary-dark p-2 sm:p-3 rounded-lg">解析: {q.explanation}</p>
                     )}
                   </div>
                 );
