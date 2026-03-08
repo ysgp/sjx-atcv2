@@ -160,7 +160,7 @@ export default function RatingFormsPage() {
 
         {/* Footer */}
         <div className="mt-12 text-center text-cream/40 text-sm">
-          <p>VIRTUAL STARLUX AIRLINES © 2024</p>
+          <p>VIRTUAL STARLUX AIRLINES © 2025-2026</p>
           <p>FLIGHT OPERATIONS & TRAINING DIVISION</p>
         </div>
       </div>

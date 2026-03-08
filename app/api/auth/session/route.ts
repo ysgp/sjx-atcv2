@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ALLOWED_ROLE_IDS = ['1471124514170470483', '1443928754631213206'];
+const INSTRUCTOR_ROLE_IDS = ['1471124514170470483', '1443928754631213206'];
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,22 +20,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ authenticated: false, error: 'session_expired' }, { status: 401 });
     }
 
-    // Verify user still has required roles
-    const hasPermission = session.roles.some((roleId: string) =>
-      ALLOWED_ROLE_IDS.includes(roleId)
-    );
-
-    if (!hasPermission) {
-      return NextResponse.json({ authenticated: false, error: 'no_permission' }, { status: 403 });
-    }
+    // Check if user has instructor role
+    const isInstructor = session.roles?.some((roleId: string) =>
+      INSTRUCTOR_ROLE_IDS.includes(roleId)
+    ) || session.isInstructor;
 
     return NextResponse.json({
       authenticated: true,
       user: {
-        id: session.userId,
+        userId: session.userId,
         username: session.username,
         discriminator: session.discriminator,
         avatar: session.avatar,
+        roles: session.roles,
+        isInstructor,
+        studentId: session.studentId,
+        callsign: session.callsign,
       },
     });
   } catch (error) {

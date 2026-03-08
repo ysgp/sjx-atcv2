@@ -3,6 +3,8 @@ import { Menu, LogOut, User, Settings } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
+const INSTRUCTOR_ROLE_IDS = ['1471124514170470483', '1443928754631213206'];
+
 interface NavbarProps {
   onMenuClick?: () => void;
 }
@@ -28,6 +30,11 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     };
     checkAuth();
   }, []);
+
+  // Check if user has instructor role
+  const isInstructor = discordUser?.roles?.some((roleId: string) =>
+    INSTRUCTOR_ROLE_IDS.includes(roleId)
+  ) || discordUser?.isInstructor;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -82,7 +89,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
           >
             {discordUser?.avatar ? (
               <img 
-                src={`https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=64`}
+                src={`https://cdn.discordapp.com/avatars/${discordUser.userId}/${discordUser.avatar}.png?size=64`}
                 alt={discordUser.username}
                 className="w-full h-full rounded-full object-cover"
               />
@@ -101,19 +108,24 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   {/* User Info */}
                   <div className="p-4 border-b border-cream/10">
                     <div className="flex items-center gap-3">
-                      <img 
-                        src={`https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png?size=64`}
-                        alt={discordUser.username}
-                        className="w-12 h-12 rounded-full"
-                      />
+                      {discordUser.avatar ? (
+                        <img 
+                          src={`https://cdn.discordapp.com/avatars/${discordUser.userId}/${discordUser.avatar}.png?size=64`}
+                          alt={discordUser.username}
+                          className="w-12 h-12 rounded-full"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-accent/20 flex items-center justify-center">
+                          <User className="w-6 h-6 text-accent" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <p className="text-cream font-semibold truncate">
-                          {discordUser.username}
-                          {discordUser.discriminator && discordUser.discriminator !== '0' && (
-                            <span className="text-cream/40">#{discordUser.discriminator}</span>
-                          )}
+                          {discordUser.callsign || discordUser.username}
                         </p>
-                        <p className="text-cream/50 text-xs">Discord 帳號</p>
+                        <p className="text-cream/50 text-xs">
+                          {discordUser.callsign ? `@${discordUser.username}` : 'Discord 帳號'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -121,12 +133,24 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                   {/* Menu Items */}
                   <div className="py-2">
                     <button
-                      onClick={handleAdminPanel}
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        router.push('/profile');
+                      }}
                       className="w-full px-4 py-2.5 flex items-center gap-3 text-cream/80 hover:text-cream hover:bg-primary-light transition-colors text-left"
                     >
-                      <Settings className="w-4 h-4" />
-                      <span className="text-sm">教官後台</span>
+                      <User className="w-4 h-4" />
+                      <span className="text-sm">個人資料</span>
                     </button>
+                    {isInstructor && (
+                      <button
+                        onClick={handleAdminPanel}
+                        className="w-full px-4 py-2.5 flex items-center gap-3 text-cream/80 hover:text-cream hover:bg-primary-light transition-colors text-left"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span className="text-sm">教官後台</span>
+                      </button>
+                    )}
                     <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2.5 flex items-center gap-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors text-left"

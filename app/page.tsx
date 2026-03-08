@@ -1,13 +1,12 @@
 // app/page.tsx
 import Link from 'next/link';
-import { BookOpen, Trophy, ClipboardList, Settings } from 'lucide-react';
+import { BookOpen, Trophy, ClipboardList } from 'lucide-react';
 
 export default function HomePage() {
   const menus = [
     { name: '小考系統', subtitle: 'Quiz System', href: '/quiz', desc: '章節制測驗，提升專業技能', icon: BookOpen, color: 'bg-blue-500/10 border-blue-500/30' },
     { name: '結訓考試', subtitle: 'Final Exam', href: '/final', desc: '綜合評估，獲取認證資格', icon: Trophy, color: 'bg-amber-500/10 border-amber-500/30' },
     { name: '成績查詢', subtitle: 'Results', href: '/results', desc: '查看個人學習進度與歷史', icon: ClipboardList, color: 'bg-green-500/10 border-green-500/30' },
-    { name: '教官後台', subtitle: 'Admin Panel', href: '/sjx-admin-panel', desc: '系統管理與配置', icon: Settings, color: 'bg-purple-500/10 border-purple-500/30' },
   ];
 
   return (
@@ -26,7 +25,7 @@ export default function HomePage() {
           </div>
           <div>
             <p className="text-cream/50 text-sm">培訓模組</p>
-            <p className="text-2xl font-bold text-cream">4</p>
+            <p className="text-2xl font-bold text-cream">3</p>
           </div>
         </div>
         <div className="card flex items-center gap-4">
@@ -44,7 +43,7 @@ export default function HomePage() {
           </div>
           <div>
             <p className="text-cream/50 text-sm">版本</p>
-            <p className="text-2xl font-bold text-cream">v2.2.1 Beta</p>
+            <p className="text-2xl font-bold text-cream">v2.3.0</p>
           </div>
         </div>
       </div>

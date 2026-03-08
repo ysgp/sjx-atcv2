@@ -145,6 +145,7 @@ export async function GET(request: Request) {
       email: pilot.email,
       status: pilot.status,
       rank: pilot.rank?.name || null,
+      discord_id: pilot.discord_id || null, // vAMSYS pilot 的 Discord ID
     }));
 
     return NextResponse.json({

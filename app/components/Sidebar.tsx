@@ -3,14 +3,18 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Home, BookOpen, Trophy, ClipboardList, Settings, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
-const navItems = [
+const INSTRUCTOR_ROLE_IDS = ['1471124514170470483', '1443928754631213206'];
+
+const baseNavItems = [
   { href: '/', label: '首頁', icon: 'home' },
   { href: '/quiz', label: '小考系統', icon: 'book' },
   { href: '/final', label: '結訓考試', icon: 'trophy' },
   { href: '/results', label: '成績查詢', icon: 'clipboard' },
-  { href: '/sjx-admin-panel', label: '教官後台', icon: 'settings' },
 ];
+
+const adminNavItem = { href: '/sjx-admin-panel', label: '教官後台', icon: 'settings' };
 
 function NavIcon({ icon, className }: { icon: string; className?: string }) {
   const iconClass = className || 'w-5 h-5';
@@ -31,6 +35,27 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const [isInstructor, setIsInstructor] = useState(false);
+
+  useEffect(() => {
+    const checkRole = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        if (res.ok) {
+          const data = await res.json();
+          const hasRole = data.user?.roles?.some((roleId: string) =>
+            INSTRUCTOR_ROLE_IDS.includes(roleId)
+          ) || data.user?.isInstructor;
+          setIsInstructor(hasRole);
+        }
+      } catch (error) {
+        // Not logged in or error
+      }
+    };
+    checkRole();
+  }, []);
+
+  const navItems = isInstructor ? [...baseNavItems, adminNavItem] : baseNavItems;
 
   return (
     <aside className={`w-64 bg-primary-dark border-r border-cream/10 flex flex-col fixed h-full z-40 transition-transform duration-300 lg:translate-x-0 ${
@@ -80,7 +105,7 @@ export default function Sidebar({ isOpen = false, onClose }: SidebarProps) {
 
       {/* Footer */}
       <div className="p-4 border-t border-cream/10">
-        <p className="text-xs text-cream/30 text-center">v2.0 © Virtual Starlux</p>
+        <p className="text-xs text-cream/30 text-center">v2.3.0 © 2025-2026 Virtual Starlux</p>
       </div>
     </aside>
   );

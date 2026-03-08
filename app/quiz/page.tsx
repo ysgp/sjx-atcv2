@@ -1,10 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { User, BookOpen, CheckCircle, XCircle, ArrowRight, Home } from 'lucide-react';
 
 export default function QuizPage() {
-  const [step, setStep] = useState(1); // 1: Callsign, 2: Chapter, 3: Exam, 4: Result
+  const [step, setStep] = useState(0); // 0: Loading, 1: Callsign (skipped if logged in), 2: Chapter, 3: Exam, 4: Result
   const [callsign, setCallsign] = useState('');
   const [chapters, setChapters] = useState<any[]>([]);
   const [selectedChapter, setSelectedChapter] = useState<string>('');
@@ -12,6 +12,31 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [examResult, setExamResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
+
+  // 自動從 session 取得 callsign
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.user?.callsign) {
+          setCallsign(data.user.callsign);
+          // 直接載入章節並跳至 step 2
+          const { data: chapData } = await supabase.from('sjx_chapters').select('*');
+          setChapters(chapData || []);
+          setStep(2);
+        } else {
+          setStep(1);
+        }
+      } catch {
+        setStep(1);
+      } finally {
+        setSessionLoading(false);
+      }
+    };
+    fetchSession();
+  }, []);
   
   // 自定義對話框狀態
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -192,7 +217,15 @@ export default function QuizPage() {
         <p className="text-cream/50">章節制測驗，提升您的專業技能</p>
       </div>
 
-      {/* Step 1: 身份驗證 */}
+      {/* Step 0: Loading Session */}
+      {step === 0 && (
+        <div className="card max-w-md mx-auto text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-cream/70">載入中...</p>
+        </div>
+      )}
+
+      {/* Step 1: 身份驗證 (備用，當 session 無 callsign 時) */}
       {step === 1 && (
         <div className="card max-w-md mx-auto text-center">
           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-6">

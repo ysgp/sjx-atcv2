@@ -4,13 +4,14 @@ import { supabase } from '@/lib/supabase';
 import { User, Clock, CheckCircle, XCircle, AlertTriangle, Home } from 'lucide-react';
 
 export default function FinalExamPage() {
-  const [step, setStep] = useState(1); // 1: Callsign, 2: Exam, 3: Result
+  const [step, setStep] = useState(0); // 0: Loading, 1: Callsign (skipped if logged in), 2: Exam, 3: Result
   const [callsign, setCallsign] = useState('');
   const [questions, setQuestions] = useState<any[]>([]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState(3600); // 60 分鐘 = 3600 秒
   const [examResult, setExamResult] = useState<any>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
   
   // 自定義對話框狀態
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -20,6 +21,27 @@ export default function FinalExamPage() {
     message: string;
     onConfirm?: () => void;
   }>({ type: 'alert', title: '', message: '' });
+
+  // 自動從 session 取得 callsign
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.user?.callsign) {
+          setCallsign(data.user.callsign);
+          setStep(1); // 跳到 step 1，但已有 callsign，用戶按「開始考試」即可
+        } else {
+          setStep(1);
+        }
+      } catch {
+        setStep(1);
+      } finally {
+        setSessionLoading(false);
+      }
+    };
+    fetchSession();
+  }, []);
 
   // 驗證呼號與資格
   const startExam = async () => {
@@ -180,6 +202,14 @@ const submitExam = async () => {
         <p className="text-cream/50">綜合評估，獲取認證資格</p>
       </div>
 
+      {/* Step 0: Loading Session */}
+      {step === 0 && (
+        <div className="card max-w-md mx-auto text-center">
+          <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-cream/70">載入中...</p>
+        </div>
+      )}
+
       {step === 1 && (
         <div className="card max-w-md mx-auto text-center">
           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-6">
@@ -191,13 +221,21 @@ const submitExam = async () => {
             <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> 60分鐘</span>
             <span>20題</span>
           </div>
-          <input 
-            className="input-field w-full mb-6 text-center text-xl font-mono tracking-wider" 
-            placeholder="CALLSIGN"
-            value={callsign} 
-            onChange={e => setCallsign(e.target.value.toUpperCase())} 
-          />
-          <button className="btn-primary w-full" onClick={startExam}>開始考試</button>
+          {/* 如果已有 callsign，顯示為只讀 */}
+          {callsign ? (
+            <div className="bg-primary-dark border border-accent/30 rounded-xl px-6 py-4 mb-6 text-center">
+              <span className="text-cream/50 text-sm">目前登入呼號</span>
+              <div className="text-2xl font-mono font-bold text-accent tracking-wider">{callsign}</div>
+            </div>
+          ) : (
+            <input 
+              className="input-field w-full mb-6 text-center text-xl font-mono tracking-wider" 
+              placeholder="CALLSIGN"
+              value={callsign} 
+              onChange={e => setCallsign(e.target.value.toUpperCase())} 
+            />
+          )}
+          <button className="btn-primary w-full" onClick={startExam} disabled={!callsign}>開始考試</button>
         </div>
       )}
 

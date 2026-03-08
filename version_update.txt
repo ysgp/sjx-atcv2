@@ -2,6 +2,57 @@
 SJX Training System - Version Update Log
 ================================================================================
 
+v2.3.0 (2026-03-08)
+--------------------------------------------------------------------------------
+added:
+- 學員登入系統
+  - Discord OAuth 登入
+  - vAMSYS OAuth 登入（開發中）
+  - 自動連結 Discord 帳號與 vAMSYS 飛行員資料
+- 頁面存取權限控制
+  - 未登入用戶導向登入頁面
+  - 教官後台僅限教官角色存取
+- 用戶下拉選單顯示 Callsign 及 Discord 帳號資訊
+- 教官後台按鈕僅對教官角色顯示
+- 個人資料頁面
+  - 主要識別（Callsign、姓名、員工編號）
+  - 資訊/狀態（培訓梯次、Discord ID、帳號狀態）
+  - 時間（資料建立、Discord 連結、本次登入）
+  - 鏈接狀態（Discord、vAMSYS 連結狀態）
+  - 手動連結學員帳號功能（搜尋 Callsign 連結）
+- vAMSYS 同步功能增強
+  - 同步時自動獲取飛行員 Discord ID
+  - 導入時自動連結 Discord 帳號
+  - 更新現有學員的 Discord ID（如尚未連結）
+  - 飛行員卡片顯示 Discord 連結狀態標籤
+- 帳號連結引導流程 (OnboardingModal)
+  - 未連結學員帳號時自動顯示引導彈窗
+  - 步驟一：驗證身份（輸入 Callsign 和 vAMSYS 顯示名稱）
+  - 步驟二：引導使用者連結 Discord
+    - 方法一：前往 auth.vamsys.io/user/social 連結
+    - 方法二：透過 Discord 頻道 🎫 Pilot Access 申請
+- /api/auth/verify-vamsys API - 驗證 vAMSYS 飛行員身份
+- 登入頁面錯誤訊息顯示（非學員登入顯示錯誤提示）
+
+changed:
+- 主頁移除教官後台直接入口（改由 Navbar 進入）
+- Session API 返回完整用戶資訊
+- 登入頁面改為全螢幕置中設計（不顯示 sidebar/navbar）
+- /api/auth/logout 支援 GET 請求（直接訪問即可登出）
+- 學員登入檢查：未在學員庫找到對應記錄時重導向至登入頁面並顯示錯誤
+- 小考系統自動使用登入 Callsign，跳過身份驗證步驟直接進入章節選擇
+- 結訓考試自動帶入登入 Callsign（唯讀顯示），直接按「開始考試」即可
+- 成績查詢自動帶入登入 Callsign 並查詢成績
+- 成績查詢頁面移除搜尋框，僅能查看自己的成績（隱私保護）
+
+removed:
+- 成績查詢頁面的 Callsign 搜尋功能（僅能查看自己成績）
+
+database:
+- sjx_students 新增欄位：discord_id, discord_username, discord_avatar, discord_linked_at
+
+================================================================================
+
 v2.2.1 Beta (2026-03-08)
 --------------------------------------------------------------------------------
 added:

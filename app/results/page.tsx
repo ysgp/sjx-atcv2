@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, X, CheckCircle, XCircle, FileText, Calendar, Download, Plane, User, Award, Loader2 } from 'lucide-react';
+import { X, CheckCircle, XCircle, FileText, Calendar, Download, Plane, User, Award, Loader2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -32,6 +32,7 @@ export default function ResultsPage() {
   const [selectedQuiz, setSelectedQuiz] = useState<any>(null);
   const [selectedRating, setSelectedRating] = useState<any>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [sessionLoading, setSessionLoading] = useState(true);
   
   // 自定義對話框狀態
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -39,6 +40,48 @@ export default function ResultsPage() {
     title: string;
     message: string;
   }>({ title: '', message: '' });
+
+  // 查詢成績 (使用 useCallback 以便在 useEffect 中使用)
+  const fetchResultsByCallsign = useCallback(async (cs: string) => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('sjx_results')
+      .select(`
+        *,
+        sjx_chapters(chapter_name)
+      `)
+      .eq('callsign', cs.toUpperCase())
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      setDialogConfig({
+        title: '查詢失敗',
+        message: '無法讀取成績資料，請稍後再試'
+      });
+      setDialogOpen(true);
+    }
+    else setResults(data || []);
+    setLoading(false);
+  }, []);
+
+  // 自動從 session 取得 callsign 並查詢成績
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.user?.callsign) {
+          setCallsign(data.user.callsign);
+          await fetchResultsByCallsign(data.user.callsign);
+        }
+      } catch {
+        // Session 讀取失敗，允許手動輸入
+      } finally {
+        setSessionLoading(false);
+      }
+    };
+    fetchSession();
+  }, [fetchResultsByCallsign]);
 
   // PDF 匯出功能 - 與考核表單一模一樣
   const exportRatingPDF = async (resultItem: any) => {
@@ -512,28 +555,6 @@ export default function ResultsPage() {
     }
   };
 
-  const fetchResults = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('sjx_results')
-      .select(`
-        *,
-        sjx_chapters(chapter_name)
-      `)
-      .eq('callsign', callsign.toUpperCase())
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      setDialogConfig({
-        title: '查詢失敗',
-        message: '無法讀取成績資料，請稍後再試'
-      });
-      setDialogOpen(true);
-    }
-    else setResults(data || []);
-    setLoading(false);
-  };
-
   const showDetails = async (res: any) => {
     if (res.exam_type === 'final') {
       setDialogConfig({
@@ -586,31 +607,32 @@ export default function ResultsPage() {
         <p className="text-cream/50">查看您的學習進度與歷史紀錄</p>
       </div>
       
-      {/* Search Box */}
-      <div className="card mb-8">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="w-5 h-5 text-cream/40 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input 
-              className="input-field w-full pl-10 text-lg" 
-              placeholder="輸入您的 CALLSIGN"
-              value={callsign}
-              onChange={e => setCallsign(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === 'Enter' && fetchResults()}
-            />
+      {/* 目前登入的呼號 */}
+      {callsign && (
+        <div className="card mb-8">
+          <div className="flex items-center gap-3">
+            <User className="w-5 h-5 text-accent" />
+            <span className="text-cream/50 text-sm">目前登入呼號</span>
+            <span className="text-xl font-mono font-bold text-accent tracking-wider">{callsign}</span>
           </div>
-          <button className="btn-primary" onClick={fetchResults} disabled={loading}>
-            {loading ? '查詢中...' : '搜尋'}
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Results List */}
       <div className="space-y-4">
-        {results.length === 0 && !loading && (
+        {/* Session 載入中 */}
+        {sessionLoading && (
+          <div className="card text-center py-16">
+            <div className="animate-spin w-8 h-8 border-4 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-cream/70">載入中...</p>
+          </div>
+        )}
+        
+        {/* 沒有成績 */}
+        {!sessionLoading && results.length === 0 && !loading && (
           <div className="card text-center py-16">
             <FileText className="w-12 h-12 text-cream/20 mx-auto mb-4" />
-            <p className="text-cream/50">請輸入呼號進行查詢</p>
+            <p className="text-cream/50">尚無成績紀錄</p>
           </div>
         )}
         
