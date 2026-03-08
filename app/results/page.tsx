@@ -636,11 +636,19 @@ export default function ResultsPage() {
           </div>
         )}
         
-        {results.map((res) => (
+        {results.map((res) => {
+          // 檢查是否為練習題（無評分）
+          const isPractice = res.detailed_answers?.is_practice === true;
+          
+          return (
           <div key={res.id} className="card flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-l-4 border-l-accent">
             <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-              <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center ${res.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                {res.passed ? (
+              <div className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center ${
+                isPractice ? 'bg-blue-500/20' : res.passed ? 'bg-green-500/20' : 'bg-red-500/20'
+              }`}>
+                {isPractice ? (
+                  <CheckCircle className="w-5 h-5 text-blue-400" />
+                ) : res.passed ? (
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 ) : (
                   <XCircle className="w-5 h-5 text-red-400" />
@@ -671,8 +679,17 @@ export default function ResultsPage() {
             
             <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
               <div className="text-left sm:text-right">
-                <p className={`text-xl sm:text-2xl font-bold ${res.passed ? 'text-green-400' : 'text-red-400'}`}>{res.score}</p>
-                <p className="text-xs uppercase text-cream/40">{res.passed ? 'Passed' : 'Failed'}</p>
+                {isPractice ? (
+                  <>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-400">—</p>
+                    <p className="text-xs uppercase text-cream/40">練習</p>
+                  </>
+                ) : (
+                  <>
+                    <p className={`text-xl sm:text-2xl font-bold ${res.passed ? 'text-green-400' : 'text-red-400'}`}>{res.score}</p>
+                    <p className="text-xs uppercase text-cream/40">{res.passed ? 'Passed' : 'Failed'}</p>
+                  </>
+                )}
               </div>
               {res.exam_type === 'quiz' && (
                 <button className="btn-secondary text-xs sm:text-sm whitespace-nowrap" onClick={() => showDetails(res)}>詳情</button>
@@ -687,7 +704,8 @@ export default function ResultsPage() {
               )}
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* 小考詳情彈窗 */}

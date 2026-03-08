@@ -166,15 +166,18 @@ const submitExam = async () => {
   });
 
   // 根據有正確答案的題目數量計算實際分數
-  const score = gradedQuestions > 0 ? Math.round((correctCount / gradedQuestions) * 100) : 0;
-  const passed = score >= 80; // 結訓需 80 分
+  // 如果沒有任何需評分的題目，視為「完成」
+  const isAllOpenEnded = gradedQuestions === 0;
+  const score = gradedQuestions > 0 ? Math.round((correctCount / gradedQuestions) * 100) : 100;
+  const passed = isAllOpenEnded ? true : score >= 80; // 結訓需 80 分，無評分題目視為完成
 
   const finalData = {
     callsign,
     exam_type: 'final',
     score,
     passed,
-    detailed_answers: answers
+    detailed_answers: answers,
+    is_practice: isAllOpenEnded
   };
 
   await fetch('/api/submit-result', {
@@ -406,20 +409,34 @@ const submitExam = async () => {
 
       {step === 3 && (
         <div className="card text-center py-12">
-          <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-            {examResult.passed ? (
-              <CheckCircle className="w-12 h-12 text-green-400" />
-            ) : (
-              <XCircle className="w-12 h-12 text-red-400" />
-            )}
-          </div>
-          <h2 className={`text-5xl font-bold mb-4 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
-            {examResult.passed ? 'PASSED' : 'FAILED'}
-          </h2>
-          <p className="text-4xl font-mono text-cream mb-2">{examResult.score} 分</p>
-          <p className="text-cream/50 mb-8">
-            {examResult.passed ? '恭喜您完成 STARLUX ATC 培訓認證。' : '未達 80 分標準，請檢討後再次嘗試補考。'}
-          </p>
+          {examResult.is_practice ? (
+            // 練習題（無評分）- 結訓考試通常不會有這種情況
+            <>
+              <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 bg-blue-500/20">
+                <CheckCircle className="w-12 h-12 text-blue-400" />
+              </div>
+              <h2 className="text-5xl font-bold mb-4 text-blue-400">已完成</h2>
+              <p className="text-cream/50 mb-8">本次考試為練習題，無評分標準</p>
+            </>
+          ) : (
+            // 正常評分結果
+            <>
+              <div className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                {examResult.passed ? (
+                  <CheckCircle className="w-12 h-12 text-green-400" />
+                ) : (
+                  <XCircle className="w-12 h-12 text-red-400" />
+                )}
+              </div>
+              <h2 className={`text-5xl font-bold mb-4 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
+                {examResult.passed ? 'PASSED' : 'FAILED'}
+              </h2>
+              <p className="text-4xl font-mono text-cream mb-2">{examResult.score} 分</p>
+              <p className="text-cream/50 mb-8">
+                {examResult.passed ? '恭喜您完成 STARLUX ATC 培訓認證。' : '未達 80 分標準，請檢討後再次嘗試補考。'}
+              </p>
+            </>
+          )}
           <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-lg mb-8 flex items-center justify-center gap-3 text-amber-300">
             <AlertTriangle className="w-5 h-5" />
             <span className="text-sm">結訓考試不開放顯示正確答案與解析</span>

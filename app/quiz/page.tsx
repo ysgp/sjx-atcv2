@@ -186,8 +186,10 @@ export default function QuizPage() {
     });
 
     // 根據有正確答案的題目數量計算實際分數
-    const actualScore = gradedQuestions > 0 ? Math.round((score / (gradedQuestions * 10)) * 100) : 0;
-    const passed = actualScore >= 70; // 70 分及格
+    // 如果沒有任何需評分的題目，視為「完成」（練習題章節）
+    const isAllOpenEnded = gradedQuestions === 0;
+    const actualScore = gradedQuestions > 0 ? Math.round((score / (gradedQuestions * 10)) * 100) : 100;
+    const passed = isAllOpenEnded ? true : actualScore >= 70; // 無評分題目視為完成
 
     const finalData = {
       callsign: callsign.toUpperCase(),
@@ -195,7 +197,8 @@ export default function QuizPage() {
       chapter_id: selectedChapter,
       score: actualScore,
       passed,
-      detailed_answers: answers
+      detailed_answers: answers,
+      is_practice: isAllOpenEnded // 標記為練習章節
     };
 
     // 透過 API Route 安全寫入資料庫
@@ -459,17 +462,33 @@ export default function QuizPage() {
       {step === 4 && (
         <div className="card">
           <div className="text-center mb-8">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-              {examResult.passed ? (
-                <CheckCircle className="w-10 h-10 text-green-400" />
-              ) : (
-                <XCircle className="w-10 h-10 text-red-400" />
-              )}
-            </div>
-            <h2 className={`text-4xl font-bold mb-2 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
-              {examResult.passed ? 'PASSED' : 'FAILED'}
-            </h2>
-            <p className="text-3xl font-mono text-cream">{examResult.score} 分</p>
+            {examResult.is_practice ? (
+              // 練習題章節（無評分）
+              <>
+                <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 bg-blue-500/20">
+                  <CheckCircle className="w-10 h-10 text-blue-400" />
+                </div>
+                <h2 className="text-4xl font-bold mb-2 text-blue-400">
+                  已完成
+                </h2>
+                <p className="text-cream/50 text-sm">本章節為練習題，無評分標準</p>
+              </>
+            ) : (
+              // 有評分的章節
+              <>
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 ${examResult.passed ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                  {examResult.passed ? (
+                    <CheckCircle className="w-10 h-10 text-green-400" />
+                  ) : (
+                    <XCircle className="w-10 h-10 text-red-400" />
+                  )}
+                </div>
+                <h2 className={`text-4xl font-bold mb-2 ${examResult.passed ? 'text-green-400' : 'text-red-400'}`}>
+                  {examResult.passed ? 'PASSED' : 'FAILED'}
+                </h2>
+                <p className="text-3xl font-mono text-cream">{examResult.score} 分</p>
+              </>
+            )}
           </div>
           
           <div className="border-t border-cream/10 pt-8">
