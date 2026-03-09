@@ -2,6 +2,51 @@
 SJX Training System - Version Update Log
 ================================================================================
 
+v2.3.1 (2026-03-08)
+--------------------------------------------------------------------------------
+added:
+- 密碼登入系統
+  - 新增密碼登入方式（與 OAuth 登入並存，以 Tab 切換）
+  - 預設密碼 SJX12345
+  - 首次登入強制更改密碼（密碼長度至少 6 字元）
+  - 密碼顯示/隱藏切換按鈕 (Eye/EyeOff)
+  - Callsign 輸入自動轉為大寫
+- /api/auth/password-login API - 密碼登入驗證
+  - 驗證 Callsign 及密碼
+  - 首次登入自動設定預設密碼 hash
+  - 調用 vAMSYS API 自動連結 Discord（若尚未連結）
+  - 連結 Discord 後自動獲取頭像、角色資訊
+  - 自動判定教官權限（依 Discord 角色）
+  - 更新 last_login_at 時間戳
+  - 返回 requirePasswordChange 標記供前端判斷
+- /api/auth/change-password API - 更改密碼
+  - 驗證 session 及密碼長度
+  - 禁止使用預設密碼
+  - 更新 password_hash 並設定 password_changed = true
+
+changed:
+- OAuth 登入流程調整
+  - 有學員 Role 但無學員記錄時，重導向至 /login?error=notify_admin
+  - 移除 OnboardingModal 自助綁定流程（改為聯繫管理員）
+- 登入頁面改版
+  - 新增「密碼登入」與「OAuth 登入」Tab 切換
+  - 密碼登入表單：Callsign 輸入框、密碼輸入框（含顯示切換）
+  - OAuth 登入保留 Discord OAuth 按鈕
+  - 首次登入更改密碼彈窗
+  - 版本號更新至 v2.3.1
+
+removed:
+- OnboardingModal 帳號連結彈窗（改由管理員處理）
+- vAMSYS OAuth 登入按鈕（OAuth Tab 僅保留 Discord）
+
+database:
+- sjx_students 新增欄位：
+  - password_hash TEXT（bcrypt 加密密碼）
+  - password_changed BOOLEAN DEFAULT FALSE（是否已更改預設密碼）
+  - last_login_at TIMESTAMP（最後登入時間）
+
+================================================================================
+
 v2.3.0 (2026-03-08)
 --------------------------------------------------------------------------------
 added:
@@ -48,6 +93,9 @@ changed:
   - 小考：顯示「已完成」而非 FAILED，分數顯示為 100
   - 結訓考試：同樣處理（但通常不會有此情況）
   - 成績查詢：練習題顯示藍色「—」符號及「練習」標籤
+- 學員登入改進：有學員 Role 的用戶即使 vAMSYS 未連結 Discord 也可登入
+  - 登入後會顯示 OnboardingModal 引導綁定流程
+  - TRAINEE_ROLE_IDS: 1471073994873634848, 1471161941153153068
 
 removed:
 - 成績查詢頁面的 Callsign 搜尋功能（僅能查看自己成績）

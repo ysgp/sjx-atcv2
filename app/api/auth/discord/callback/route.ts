@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 const INSTRUCTOR_ROLE_IDS = ['1471124514170470483', '1443928754631213206'];
+// 學員相關 Role IDs - 有這些 role 的用戶即使未綁定也可以登入
+const TRAINEE_ROLE_IDS = ['1471073994873634848', '1471161941153153068'];
 const GUILD_ID = process.env.DISCORD_GUILD_ID || '';
 const VAMSYS_CLIENT_ID = process.env.VAMSYS_CLIENT_ID || '';
 const VAMSYS_CLIENT_SECRET = process.env.VAMSYS_CLIENT_SECRET || '';
@@ -244,9 +246,21 @@ export async function GET(request: NextRequest) {
         .eq('id', existingStudent.id);
     }
 
-    // For student login, require student record to exist
+    // Check if user has trainee role
+    const hasTraineeRole = userRoles.some((roleId: string) =>
+      TRAINEE_ROLE_IDS.includes(roleId)
+    );
+
+    // For student login, require student record
     if (isStudentLogin && !studentData) {
-      console.log('Student login failed: No student record found for Discord ID:', userData.id);
+      // If user has trainee role but no student record, they need admin to create account
+      if (hasTraineeRole) {
+        console.log('Student login: Has trainee role but no student record, notifying admin. Discord ID:', userData.id);
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_BASE_URL}/login?error=notify_admin`
+        );
+      }
+      console.log('Student login failed: No student record and no trainee role for Discord ID:', userData.id);
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL}/login?error=not_student`
       );
