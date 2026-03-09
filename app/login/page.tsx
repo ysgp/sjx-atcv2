@@ -11,7 +11,7 @@ function LoginContent() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Password login states
-  const [callsign, setCallsign] = useState('');
+  const [callsign, setCallsign] = useState('SJX');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [requirePasswordChange, setRequirePasswordChange] = useState(false);
@@ -250,15 +250,35 @@ function LoginContent() {
 
           {/* Password Login */}
           <form onSubmit={handlePasswordLogin} className="space-y-4">
-              <div className="relative">
-                <User className="w-5 h-5 text-cream/40 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  placeholder="Callsign (如: SJX001)"
-                  value={callsign}
-                  onChange={e => setCallsign(e.target.value.toUpperCase())}
-                  className="input-field w-full pl-10 text-lg font-mono"
-                />
+              <div className="relative flex flex-col">
+                <div className="relative flex items-center">
+                  <User className="w-5 h-5 text-cream/40 absolute left-3" style={{ top: '50%', transform: 'translateY(-50%)' }} />
+                  <input
+                    type="text"
+                    placeholder="Callsign (如: SJX0001)"
+                    value={callsign}
+                    onChange={e => {
+                      let val = e.target.value.toUpperCase();
+                      // 防止刪除SJX前綴
+                      if (!val.startsWith('SJX')) val = 'SJX';
+                      // 只允許 SJX + 最多4位字母或數字
+                      let suffix = val.slice(3).replace(/[^A-Z0-9]/g, '');
+                      if (suffix.length > 4) suffix = suffix.slice(0, 4);
+                      val = 'SJX' + suffix;
+                      setCallsign(val);
+                    }}
+                    maxLength={7}
+                    className="input-field w-full pl-10 text-lg font-mono"
+                    autoComplete="off"
+                    onBlur={e => {
+                      let val = e.target.value.toUpperCase();
+                      let suffix = val.slice(3).replace(/[^A-Z0-9]/g, '');
+                      if (suffix.length < 4) suffix = suffix.padEnd(4, '0');
+                      setCallsign('SJX' + suffix);
+                    }}
+                  />
+                </div>
+                <span className="text-xs text-amber-400 font-normal mt-2">請輸入完整 Callsign（SJX+4位字母或數字）</span>
               </div>
 
               <div className="relative">
@@ -319,7 +339,7 @@ function LoginContent() {
               </button>
 
           <p className="text-center text-cream/40 text-xs mt-3">
-            使用 Discord 登入需要先在 vAMSYS 綁定 Discord 帳號
+            使用 Discord 登入需要先在 vAMSYS <a href="https://auth.vamsys.io/user/social" target="_blank" rel="noopener" className="underline text-accent hover:text-accent/80">綁定 Discord 帳號</a>
           </p>
 
           {/* Footer */}
